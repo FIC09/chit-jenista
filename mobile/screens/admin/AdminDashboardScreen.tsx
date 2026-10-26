@@ -212,16 +212,25 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
 
     const targetGroup = availableGroups.find((g) => g.id === selectedGroupId);
 
+    // Cache customer details before resetting state
+    const enrolledCustomerName = foundCustomer.name || foundCustomer.fullName || 'Member';
+    const enrolledCustomerId = foundCustomer.id;
+    const enrolledCustomerPhone = foundCustomer.mobile || foundCustomer.phone || '';
+    const enrolledCustomerMongoId = foundCustomer.mongoId || foundCustomer._id;
+
     setEnrollingMember(true);
     try {
       await DataSyncManager.enrollMemberToGroup({
-        customerId: foundCustomer.id,
+        customerId: enrolledCustomerId,
         groupId: selectedGroupId,
         groupName: targetGroup?.name || selectedGroupId,
         scheme: memberScheme,
         chitValue: val,
         duration: dur,
         monthlyInstallment: installment,
+        customerPhone: enrolledCustomerPhone,
+        customerMongoId: enrolledCustomerMongoId,
+        customerName: enrolledCustomerName,
       });
 
       setIsEnrollModalOpen(false);
@@ -231,7 +240,7 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
       await loadAllMetrics();
       Alert.alert(
         'Member Enrolled',
-        `Successfully enrolled "${foundCustomer.name}" into "${targetGroup?.name || selectedGroupId}"!`
+        `Successfully enrolled "${enrolledCustomerName}" into "${targetGroup?.name || selectedGroupId}"!`
       );
     } catch (e: any) {
       Alert.alert('Enrollment Error', e?.message || 'Failed to enroll member into group.');
@@ -906,12 +915,12 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>INSTALLMENT (₹) *</Text>
+                  <Text style={styles.inputLabel}>MONTHLY EMI (₹)</Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, styles.textInputReadOnly]}
                     keyboardType="numeric"
                     value={customerEnrollInstallment}
-                    onChangeText={setCustomerEnrollInstallment}
+                    editable={false}
                   />
                 </View>
               </View>
@@ -1492,6 +1501,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.text,
+  },
+  textInputReadOnly: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#CBD5E1',
+    color: Colors.textSecondary,
+    fontWeight: '700',
   },
   helperText: {
     fontSize: 11,

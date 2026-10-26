@@ -213,16 +213,18 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
         </View>
       </View>
 
-      {/* 6. Reference / UTR (Optional) */}
-      <View style={styles.fieldSection}>
-        <Text style={styles.fieldLabel}>Reference / UTR (Optional)</Text>
-        <Input
-          placeholder="Enter UTR / Reference No"
-          value={referenceNo}
-          onChangeText={setReferenceNo}
-          containerStyle={{ marginBottom: 0 }}
-        />
-      </View>
+      {/* 6. Reference / UTR (Only needed for online / bank transfer / UPI, not needed for Cash) */}
+      {paymentMode !== 'CASH' && (
+        <View style={styles.fieldSection}>
+          <Text style={styles.fieldLabel}>Reference / UTR (Optional)</Text>
+          <Input
+            placeholder="Enter UTR / Reference No"
+            value={referenceNo}
+            onChangeText={setReferenceNo}
+            containerStyle={{ marginBottom: 0 }}
+          />
+        </View>
+      )}
 
       {/* 7. Warm Gold Save Payment Button - Reference Screen 5 */}
       <TouchableOpacity

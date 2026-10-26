@@ -129,30 +129,42 @@ export const buildCustomerChitSchedule = (params: {
   }
 
   // Filter ledger transactions for this customer & chit
+  const cleanMobile = (mobile || '').replace(/\D/g, '');
+  const cName = (customerName || '').toLowerCase();
+  const cId = String(customerId).toLowerCase();
+  const gId = String(groupId || '').toLowerCase();
+  const gName = String(groupName || '').toLowerCase();
+
   const relevantCredits = ledgerTransactions.filter((tx: any) => {
     if (tx.type !== 'CREDIT') return false;
     const ref = String(tx.reference || '').toLowerCase();
     const desc = String(tx.description || '').toLowerCase();
-    const cId = String(customerId).toLowerCase();
-    const gId = String(groupId).toLowerCase();
+    const txCustId = String(tx.customerId || '').toLowerCase();
+    const txGroupId = String(tx.groupId || '').toLowerCase();
 
     const matchesCust =
-      ref.includes(cId) ||
-      desc.includes(cId) ||
-      String(tx.customerId || '').toLowerCase() === cId;
+      (cId && (ref.includes(cId) || desc.includes(cId) || txCustId === cId)) ||
+      (cName && (ref.includes(cName) || desc.includes(cName))) ||
+      (cleanMobile && (ref.includes(cleanMobile) || desc.includes(cleanMobile)));
 
     const matchesGroup =
       !groupId ||
-      ref.includes(gId) ||
-      desc.includes(gId) ||
-      String(tx.groupId || '').toLowerCase() === gId;
+      (gId && (ref.includes(gId) || desc.includes(gId) || txGroupId === gId)) ||
+      (gName && (ref.includes(gName) || desc.includes(gName)));
 
     return matchesCust && matchesGroup;
   });
 
-  let totalPaidInLedger = relevantCredits.reduce((s, tx) => s + Number(tx.amount || 0), 0);
-  if (totalPaidInLedger === 0 && chit?.totalPaid) {
-    totalPaidInLedger = Number(chit.totalPaid);
+  const ledgerCreditSum = relevantCredits.reduce((s, tx) => s + Number(tx.amount || 0), 0);
+  const chitPaid = Number(chit?.paidAmount || chit?.totalPaid || 0);
+  const custTotalPaid = Number(customer?.totalPaid || 0);
+
+  // If chit is marked PAID or has paid amount, or ledger has records, use the highest recorded paid sum
+  let totalPaidInLedger = Math.max(ledgerCreditSum, chitPaid);
+  if (totalPaidInLedger === 0 && chit?.paymentStatus === 'PAID') {
+    totalPaidInLedger = Number(chit?.monthlyInstallment || calculatedRows[0]?.revisedDue || Math.round(chitValue / totalDurationMonths));
+  } else if (totalPaidInLedger === 0 && custTotalPaid > 0 && (!customer?.chits || customer.chits.length <= 1)) {
+    totalPaidInLedger = custTotalPaid;
   }
 
   let creditPool = totalPaidInLedger;

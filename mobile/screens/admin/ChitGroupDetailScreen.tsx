@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { DataSyncManager } from '../../services/dataSync';
@@ -103,9 +104,9 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
                   duration: Number(ch.duration || ch.months || group?.duration || 20),
                   chitValue: Number(ch.chitValue || chitValue),
                   monthlyInstallment: Number(ch.monthlyInstallment || monthlyInstallment),
-                  paymentStatus: ch.paymentStatus || (Number(c.pending || 0) > 0 ? 'DUE' : 'PAID'),
-                  totalPaid: Number(ch.totalPaid ?? c.totalPaid ?? 0),
-                  pending: Number(ch.pending ?? c.pending ?? 0),
+                  paymentStatus: ch.paymentStatus === 'PAID' ? 'PAID' : (Number(ch.pending ?? c.pending ?? 0) === 0 && Number(ch.totalPaid || 0) > 0 ? 'PAID' : 'DUE'),
+                  totalPaid: Number(ch.totalPaid ?? ch.paidAmount ?? c.totalPaid ?? 0),
+                  pending: ch.paymentStatus === 'PAID' ? 0 : Number(ch.pending !== undefined ? ch.pending : (Number(c.pending || 0) > 0 ? c.pending : ch.monthlyInstallment || monthlyInstallment)),
                   isWithdrawn: ch.isWithdrawn || false,
                   withdrawnAmount: ch.withdrawnAmount,
                   fullCustomer: c,
@@ -190,26 +191,40 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
     const installment =
       Number(customerEnrollInstallment) || (dur > 0 ? Math.round(val / dur) : monthlyInstallment);
 
+    // Cache customer details before resetting state
+    const enrolledCustomerName = foundCustomer.name || foundCustomer.fullName || 'Member';
+    const enrolledCustomerId = foundCustomer.id;
+    const enrolledCustomerPhone = foundCustomer.mobile || foundCustomer.phone || '';
+    const enrolledCustomerMongoId = foundCustomer.mongoId || foundCustomer._id;
+
     setEnrolling(true);
     try {
       await DataSyncManager.enrollMemberToGroup({
-        customerId: foundCustomer.id,
+        customerId: enrolledCustomerId,
         groupId: group.id,
         groupName: group.name,
         scheme: memberScheme,
         chitValue: val,
         duration: dur,
         monthlyInstallment: installment,
+        customerPhone: enrolledCustomerPhone,
+        customerMongoId: enrolledCustomerMongoId,
+        customerName: enrolledCustomerName,
+        dueDate: dueDate,
       });
 
       setIsAddMemberModalOpen(false);
       setFoundCustomer(null);
       setSearchMobile('');
       setVerificationCustomer(null);
+
+      // Reload group members and switch to MEMBERS tab to immediately reveal the new member
       await loadGroupMembers();
+      setActiveTab('MEMBERS');
+
       Alert.alert(
         'Member Enrolled',
-        `Successfully enrolled "${foundCustomer.name}" into group "${group.name}"!`
+        `Successfully enrolled "${enrolledCustomerName}" into group "${group.name}"!`
       );
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to enroll customer');
@@ -221,6 +236,12 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
   useEffect(() => {
     loadGroupMembers();
   }, [group]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadGroupMembers();
+    }, [group])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -289,30 +310,17 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
         </View>
       </View>
 
-      {/* 2. Top Specifications 2x2 Grid (Total Amount, Monthly Installment, Next Due Date, Payment Method) */}
+      {/* 2. Top Specifications Card (Total Amount & Next Due Date) */}
       <View style={styles.specsCardWrapper}>
         <View style={styles.specsCard}>
           <View style={styles.specRow}>
             <View style={styles.specCol}>
               <Text style={styles.specLabel}>Total Amount</Text>
-              <Text style={styles.specValue}>{formatCurrency(chitValue)}</Text>
+              <Text style={styles.specValue}>{formatCurrency(enrolledTotalChitValueSum)}</Text>
             </View>
-            <View style={styles.specCol}>
-              <Text style={styles.specLabel}>Monthly Installment</Text>
-              <Text style={styles.specValue}>{formatCurrency(monthlyInstallment)}</Text>
-            </View>
-          </View>
-
-          <View style={styles.specDivider} />
-
-          <View style={styles.specRow}>
-            <View style={styles.specCol}>
+            <View style={[styles.specCol, { alignItems: 'flex-end' }]}>
               <Text style={styles.specLabel}>Next Due Date</Text>
               <Text style={styles.specValueDark}>{dueDate || '15th of month'}</Text>
-            </View>
-            <View style={styles.specCol}>
-              <Text style={styles.specLabel}>Payment Method</Text>
-              <Text style={styles.specValueDark}>UPI / Auto</Text>
             </View>
           </View>
         </View>
@@ -763,12 +771,12 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>INSTALLMENT (₹) *</Text>
+                  <Text style={styles.inputLabel}>MONTHLY EMI (₹)</Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, styles.textInputReadOnly]}
                     keyboardType="numeric"
                     value={customerEnrollInstallment}
-                    onChangeText={setCustomerEnrollInstallment}
+                    editable={false}
                   />
                 </View>
               </View>
@@ -1464,6 +1472,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.text,
+  },
+  textInputReadOnly: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#CBD5E1',
+    color: Colors.textSecondary,
+    fontWeight: '700',
   },
   itemPickerChip: {
     paddingHorizontal: 14,

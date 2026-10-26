@@ -123,6 +123,7 @@ export interface PaymentRequest {
   amount: number;
   paymentMode: 'UPI' | 'Bank Transfer' | 'Cash';
   referenceNumber: string;
+  paymentScreenshot?: string;
   screenshotUrl?: string;
   requestedAt: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';

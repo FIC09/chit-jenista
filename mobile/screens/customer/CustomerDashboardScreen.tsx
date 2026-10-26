@@ -14,6 +14,7 @@ import {
   Linking,
   Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../store/AuthContext';
@@ -53,6 +54,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
   const [payAmount, setPayAmount] = useState<string>('');
   const [payMode, setPayMode] = useState<'UPI' | 'Bank Transfer' | 'Cash'>('UPI');
   const [payRefNo, setPayRefNo] = useState<string>('');
+  const [payScreenshot, setPayScreenshot] = useState<string | null>(null);
   const [paySubmitting, setPaySubmitting] = useState(false);
 
   const [withdrawModalChit, setWithdrawModalChit] = useState<any | null>(null);
@@ -194,6 +196,31 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
     setPayAmount(String(suggestedAmount || chit.monthlyInstallment || 5000));
     setPayMode('UPI');
     setPayRefNo('');
+    setPayScreenshot(null);
+  };
+
+  const pickPaymentScreenshot = async () => {
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const asset = res.assets[0];
+        // Use base64 data URI if available for cross-platform portability & admin view, or file URI
+        if (asset.base64) {
+          const mime = asset.mimeType || 'image/jpeg';
+          setPayScreenshot(`data:${mime};base64,${asset.base64}`);
+        } else {
+          setPayScreenshot(asset.uri);
+        }
+      }
+    } catch (e: any) {
+      Alert.alert('Error', 'Unable to pick screenshot image.');
+    }
   };
 
   const submitPaymentRequest = async () => {
@@ -215,6 +242,8 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
         amount: Number(payAmount) || 0,
         paymentMode: payMode,
         referenceNumber: payRefNo.trim() || `CASH-${Date.now().toString().slice(-4)}`,
+        paymentScreenshot: payScreenshot || undefined,
+        screenshotUrl: payScreenshot || undefined,
         bankAccountId: activeBank?.id,
         bankName: activeBank?.bankName || 'Company Bank',
         requestedAt: new Date().toISOString(),
@@ -231,6 +260,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
 
       setPendingRequests((prev) => [newReq, ...prev.filter((r) => r.id !== newReq.id)]);
       setPaymentModalChit(null);
+      setPayScreenshot(null);
       Alert.alert(
         isAdvancePayment ? 'Advance Payment Submitted' : 'Payment Request Submitted',
         isAdvancePayment
@@ -952,6 +982,48 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
                     />
                   </>
                 )}
+
+                {/* Upload Payment Screenshot */}
+                <View style={{ marginTop: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={[styles.inputLabel, { marginTop: 0, marginBottom: 0 }]}>
+                      PAYMENT SCREENSHOT / RECEIPT SLIP
+                    </Text>
+                    <Text style={{ fontSize: 10, color: Colors.textMuted }}>Optional</Text>
+                  </View>
+
+                  {payScreenshot ? (
+                    <View style={styles.screenshotPreviewCard}>
+                      <Image source={{ uri: payScreenshot }} style={styles.screenshotThumb} />
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={styles.screenshotAttachedTitle} numberOfLines={1}>
+                          Screenshot Attached
+                        </Text>
+                        <Text style={styles.screenshotAttachedSub}>
+                          Ready to submit for admin verification
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.removeScreenshotBtn}
+                        onPress={() => setPayScreenshot(null)}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={Colors.danger} />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.uploadScreenshotBox}
+                      onPress={pickPaymentScreenshot}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.uploadIconCircle}>
+                        <Ionicons name="cloud-upload-outline" size={18} color={Colors.navy.primary} />
+                      </View>
+                      <Text style={styles.uploadScreenshotText}>Tap to upload payment screenshot</Text>
+                      <Text style={styles.uploadScreenshotSub}>PNG, JPG or JPEG proof image</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
 
                 {/* Company Destination Bank Info */}
                 <View style={styles.modalBankBox}>
@@ -2034,6 +2106,66 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: Colors.white,
+  },
+  uploadScreenshotBox: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#e0e7ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  uploadScreenshotText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.navy.primary,
+  },
+  uploadScreenshotSub: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  screenshotPreviewCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    borderRadius: 12,
+    padding: 10,
+  },
+  screenshotThumb: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    backgroundColor: '#e2e8f0',
+  },
+  screenshotAttachedTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#166534',
+  },
+  screenshotAttachedSub: {
+    fontSize: 10,
+    color: '#15803d',
+    marginTop: 2,
+  },
+  removeScreenshotBtn: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#fee2e2',
   },
 });
 

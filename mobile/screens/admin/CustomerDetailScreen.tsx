@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,20 +8,51 @@ import {
   Alert,
   StatusBar,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { Button } from '../../components/common/Button';
 import { apiClient } from '../../services/api';
 import { formatCurrency } from '../../utils/format';
 import { Customer } from '../../types';
+import { DataSyncManager } from '../../services/dataSync';
 
 export const CustomerDetailScreen: React.FC<{ route: any; navigation: any }> = ({
   route,
   navigation,
 }) => {
-  const customer: Customer = route.params?.customer || {};
+  const initialCustomer: Customer = route.params?.customer || {};
+  const [customer, setCustomer] = useState<Customer>(initialCustomer);
   const [currentStatus, setCurrentStatus] = useState<string>(customer.status || 'ACTIVE');
   const [loadingStatus, setLoadingStatus] = useState(false);
+
+  const refreshCustomer = async () => {
+    try {
+      const customers = await DataSyncManager.getCustomers();
+      const targetPhoneClean = (customer.phone || customer.mobile || '').replace(/\D/g, '');
+      const found = customers.find((c) => {
+        const cPhoneClean = (c.phone || c.mobile || '').replace(/\D/g, '');
+        return (
+          c.id === customer.id ||
+          (customer.mongoId && c.mongoId === customer.mongoId) ||
+          (targetPhoneClean && cPhoneClean && targetPhoneClean === cPhoneClean) ||
+          (c.name && customer.name && c.name.toLowerCase() === customer.name.toLowerCase())
+        );
+      });
+      if (found) {
+        setCustomer(found);
+        if (found.status) setCurrentStatus(found.status);
+      }
+    } catch (e) {
+      console.warn('Error refreshing customer details:', e);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshCustomer();
+    }, [customer.id, customer.mongoId])
+  );
 
   const displayName = customer.name || customer.fullName || 'Member';
   const initial = displayName.charAt(0).toUpperCase();

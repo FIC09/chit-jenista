@@ -216,6 +216,11 @@ export const RootNavigator = () => {
               component={CustomerScheduleScreen}
               options={{ headerShown: true, title: 'Installment Breakdown', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
             />
+            <Stack.Screen
+              name="ReceiptEntry"
+              component={ReceiptEntryScreen}
+              options={{ headerShown: true, title: 'Receipt Desk & Collections', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+            />
           </>
         ) : (
           // Admin Flow with Full Sidebar
@@ -235,6 +240,11 @@ export const RootNavigator = () => {
               name="CustomerSchedule"
               component={CustomerScheduleScreen}
               options={{ headerShown: true, title: 'Installment Breakdown', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+            />
+            <Stack.Screen
+              name="ReceiptEntry"
+              component={ReceiptEntryScreen}
+              options={{ headerShown: true, title: 'Receipt Desk & Collections', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
             />
           </>
         )}

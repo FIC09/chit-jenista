@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Linking,
   StatusBar,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../store/AuthContext';
@@ -48,6 +49,12 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
   useEffect(() => {
     fetchStaffData();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchStaffData();
+    }, [])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

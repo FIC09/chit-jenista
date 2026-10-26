@@ -186,7 +186,75 @@ export const ReceiptEntry = () => {
     const existingStaffRecs = JSON.parse(localStorage.getItem('staffReceipts') || '[]');
     localStorage.setItem('staffReceipts', JSON.stringify([staffReceipt, ...existingStaffRecs]));
 
-    // 3. Dispatch storage event so live dashboards update immediately
+    // 3. Update customer's pending & totalPaid balance and chit payment status
+    const paymentAmt = Number(form.receiptAmt);
+    const storedCustomers: any[] = JSON.parse(localStorage.getItem('mockCustomers') || '[]');
+    let targetMongoId: string | null = null;
+    let updatedCustomerPayload: any = null;
+
+    const updatedCustomers = storedCustomers.map((cust) => {
+      const isTarget =
+        cust.id === form.customerId ||
+        cust.mongoId === form.customerId ||
+        (cust.mobile && (cust.mobile === form.mobileNumber || cust.phone === form.mobileNumber)) ||
+        (cust.name && cust.name.toLowerCase() === form.customerName.toLowerCase());
+
+      if (isTarget) {
+        targetMongoId = cust.mongoId || cust.id;
+        const newPaid = Number(cust.totalPaid || 0) + paymentAmt;
+        const newPending = Math.max(0, Number(cust.pending || 0) - paymentAmt);
+
+        // Update matching chit group status
+        const updatedChits = Array.isArray(cust.chits)
+          ? cust.chits.map((ch: any) => {
+              const matchesGroup =
+                !form.chitGroup ||
+                String(ch.groupId || '').toLowerCase() === form.chitGroup.toLowerCase() ||
+                String(ch.groupName || '').toLowerCase() === form.chitGroup.toLowerCase();
+
+              if (matchesGroup) {
+                const chPaid = Number(ch.paidAmount || ch.totalPaid || 0) + paymentAmt;
+                const chPending = Math.max(0, Number(ch.pending || ch.monthlyInstallment || 0) - paymentAmt);
+                return {
+                  ...ch,
+                  paidAmount: chPaid,
+                  totalPaid: chPaid,
+                  pending: chPending,
+                  paymentStatus: chPending === 0 ? 'PAID' : 'DUE',
+                };
+              }
+              return ch;
+            })
+          : [];
+
+        updatedCustomerPayload = {
+          totalPaid: newPaid,
+          pending: newPending,
+          chits: updatedChits,
+        };
+
+        return {
+          ...cust,
+          totalPaid: newPaid,
+          pending: newPending,
+          chits: updatedChits,
+        };
+      }
+      return cust;
+    });
+
+    localStorage.setItem('mockCustomers', JSON.stringify(updatedCustomers));
+    setCustomersDB(updatedCustomers.filter((c: any) => !isMockCustomer(c)));
+
+    // 4. Sync with Backend MongoDB so mobile app & API receive the update
+    if (targetMongoId && updatedCustomerPayload) {
+      fetchClient(`/customers/${targetMongoId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updatedCustomerPayload),
+      }).catch((err) => console.warn('Failed to sync payment to backend customer:', err));
+    }
+
+    // 5. Dispatch storage event so live dashboards update immediately
     window.dispatchEvent(new Event('storage'));
     setSaved(true);
   };

@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  Image,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
@@ -18,6 +20,7 @@ import { DataSyncManager } from '../../services/dataSync';
 export const PaymentVerificationsScreen: React.FC = () => {
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [viewingProof, setViewingProof] = useState<PaymentRequest | null>(null);
 
   const loadRequests = async () => {
     try {
@@ -148,6 +151,30 @@ export const PaymentVerificationsScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* Screenshot Proof Preview Button */}
+        {(item.paymentScreenshot || item.screenshotUrl) ? (
+          <TouchableOpacity
+            style={styles.proofBtn}
+            onPress={() => setViewingProof(item)}
+            activeOpacity={0.8}
+          >
+            <Image
+              source={{ uri: item.paymentScreenshot || item.screenshotUrl }}
+              style={styles.proofThumb}
+            />
+            <View style={{ flex: 1, marginLeft: 8 }}>
+              <Text style={styles.proofBtnTitle}>Payment Screenshot Attached</Text>
+              <Text style={styles.proofBtnSub}>Tap to view proof in full size</Text>
+            </View>
+            <Ionicons name="eye-outline" size={16} color={Colors.navy.primary} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.noProofBadge}>
+            <Ionicons name="document-outline" size={13} color={Colors.neutral[400]} />
+            <Text style={styles.noProofText}>No screenshot uploaded</Text>
+          </View>
+        )}
+
         <View style={styles.bottomRow}>
           <View>
             <Text style={styles.amountLabel}>Paid Amount</Text>
@@ -207,6 +234,40 @@ export const PaymentVerificationsScreen: React.FC = () => {
           </View>
         }
       />
+
+      {/* Screenshot Preview Modal */}
+      {viewingProof && (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setViewingProof(null)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.proofModalCard}>
+              <View style={styles.proofModalHeader}>
+                <View>
+                  <Text style={styles.proofModalTitle}>Payment Proof</Text>
+                  <Text style={styles.proofModalSub}>
+                    {viewingProof.customerName} • {formatCurrency(viewingProof.amount)}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setViewingProof(null)}>
+                  <Ionicons name="close-circle" size={24} color={Colors.neutral[600]} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.proofImageWrapper}>
+                <Image
+                  source={{ uri: viewingProof.paymentScreenshot || viewingProof.screenshotUrl }}
+                  style={styles.fullProofImage}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.proofDetailsRow}>
+                <Text style={styles.proofMetaText}>Ref: {viewingProof.referenceNumber}</Text>
+                <Text style={styles.proofMetaText}>Mode: {viewingProof.paymentMode}</Text>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -350,5 +411,107 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.secondary[500],
     fontWeight: '600',
+  },
+  proofBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    borderRadius: 8,
+    padding: 8,
+    marginVertical: 10,
+  },
+  proofThumb: {
+    width: 38,
+    height: 38,
+    borderRadius: 6,
+    backgroundColor: '#e2e8f0',
+  },
+  proofBtnTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#166534',
+  },
+  proofBtnSub: {
+    fontSize: 10,
+    color: '#15803d',
+    marginTop: 1,
+  },
+  noProofBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    marginVertical: 4,
+  },
+  noProofText: {
+    fontSize: 11,
+    color: Colors.neutral[400],
+    fontStyle: 'italic',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  proofModalCard: {
+    width: '100%',
+    maxHeight: '85%',
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  proofModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderColor: Colors.neutral[200],
+  },
+  proofModalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.neutral[900],
+  },
+  proofModalSub: {
+    fontSize: 12,
+    color: Colors.neutral[500],
+    marginTop: 2,
+  },
+  proofImageWrapper: {
+    width: '100%',
+    height: 380,
+    backgroundColor: '#0f172a',
+    borderRadius: 10,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullProofImage: {
+    width: '100%',
+    height: '100%',
+  },
+  proofDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderColor: Colors.neutral[200],
+  },
+  proofMetaText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.neutral[600],
   },
 });

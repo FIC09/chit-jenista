@@ -1,0 +1,35 @@
+{"level":"info","message":"MongoDB Connected: ac-lb3lkqy-shard-00-00.lttiogk.mongodb.net","timestamp":"2026-10-26T05:09:26.225Z"}
+{"level":"info","message":"Server running in development mode on port 3000","timestamp":"2026-10-26T05:09:26.238Z"}
+{"level":"error","message":"[\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"body\",\n      \"identifier\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"origin\": \"string\",\n    \"code\": \"too_small\",\n    \"minimum\": 6,\n    \"inclusive\": true,\n    \"path\": [\n      \"body\",\n      \"password\"\n    ],\n    \"message\": \"Password must be at least 6 characters\"\n  }\n]","name":"ZodError","timestamp":"2026-10-26T07:01:42.041Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T07:01:42.974Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T07:02:16.165Z"}
+{"level":"info","message":"MongoDB Connected: ac-lb3lkqy-shard-00-00.lttiogk.mongodb.net","timestamp":"2026-10-26T08:26:11.122Z"}
+{"level":"info","message":"Server running in development mode on port 3000","timestamp":"2026-10-26T08:26:11.141Z"}
+{"level":"info","message":"MongoDB Connected: ac-lb3lkqy-shard-00-00.lttiogk.mongodb.net","timestamp":"2026-10-26T08:44:13.103Z"}
+{"level":"info","message":"Server running in development mode on port 3000","timestamp":"2026-10-26T08:44:13.112Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T08:44:19.628Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T08:53:02.030Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T08:53:52.703Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T08:55:33.128Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:01:53.908Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:02:05.424Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:16:07.433Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:16:19.379Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:16:47.072Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:22:51.248Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:31:38.378Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:40:40.519Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:40:42.960Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:41:11.712Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:41:20.569Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:41:22.116Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:46:19.628Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:59:20.687Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T09:59:32.760Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T10:03:45.875Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T10:24:45.537Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T11:09:52.224Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T11:11:59.487Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T11:14:57.958Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T11:38:07.743Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-26T11:39:16.626Z"}

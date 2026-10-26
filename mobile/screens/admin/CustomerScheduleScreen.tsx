@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 import { Colors } from '../../theme/colors';
 import { buildCustomerChitSchedule, DueInstallmentRow } from '../../utils/customerChitSchedule';
 import { formatCurrency } from '../../utils/format';
+import { DataSyncManager } from '../../services/dataSync';
 
 export const CustomerScheduleScreen: React.FC<{ route: any }> = ({ route }) => {
   const customer = route.params?.customer || {};
@@ -20,12 +21,21 @@ export const CustomerScheduleScreen: React.FC<{ route: any }> = ({ route }) => {
     scheme: 'Auction',
   };
 
+  const [ledgerTransactions, setLedgerTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    DataSyncManager.getLedgerTransactions().then((txs) => {
+      setLedgerTransactions(txs || []);
+    });
+  }, []);
+
   const scheduleSummary = useMemo(() => {
     return buildCustomerChitSchedule({
       customer,
       chit,
+      ledgerTransactions,
     });
-  }, [customer, chit]);
+  }, [customer, chit, ledgerTransactions]);
 
   const renderMonthItem = ({ item }: { item: DueInstallmentRow }) => {
     const isPaid = item.status === 'PAID';

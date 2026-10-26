@@ -98,21 +98,73 @@ export const DataSyncManager = {
 
     // Map MongoDB records
     const mappedMongo: Customer[] = mongoCustomers.map((c) => {
-      const existing = localSaved.find(
-        (l) => l.id === (c.customerCode || c._id) || l.mongoId === c._id
-      );
-      const chits = c.chits && c.chits.length > 0 ? c.chits : existing?.chits || [];
+      const cPhoneClean = (c.phone || c.mobile || '').replace(/\D/g, '');
+      const existing = localSaved.find((l) => {
+        const lPhoneClean = (l.phone || l.mobile || '').replace(/\D/g, '');
+        return (
+          l.id === (c.customerCode || c._id) ||
+          l.id === c._id ||
+          l.mongoId === c._id ||
+          (l.mongoId && c.mongoId && l.mongoId === c.mongoId) ||
+          (c.customerCode && l.id === c.customerCode) ||
+          (cPhoneClean && lPhoneClean && lPhoneClean === cPhoneClean)
+        );
+      });
+
+      // Combine MongoDB chits and local chits, preventing duplicate memberships
+      const combinedChitsMap = new Map<string, any>();
+      // Combine MongoDB chits and local chits, giving precedence to paid statuses
+      if (Array.isArray(c.chits)) {
+        c.chits.forEach((ch: any) => {
+          const key = `${ch.groupId || ch.groupName || ''}-${ch.ticketNumber || ''}`;
+          combinedChitsMap.set(key, ch);
+        });
+      }
+      if (Array.isArray(existing?.chits)) {
+        existing.chits.forEach((ch: any) => {
+          const key = `${ch.groupId || ch.groupName || ''}-${ch.ticketNumber || ''}`;
+          const current = combinedChitsMap.get(key) || {};
+          // If local or mongo has updated paymentStatus to PAID or higher paidAmount, preserve it
+          const localPaidAmt = Number(ch.paidAmount || ch.totalPaid || 0);
+          const currentPaidAmt = Number(current.paidAmount || current.totalPaid || 0);
+          const isPaid = ch.paymentStatus === 'PAID' || current.paymentStatus === 'PAID';
+          const monthly = Number(ch.monthlyInstallment || current.monthlyInstallment || 0);
+          const pendingCandidate = Math.min(
+            Number(ch.pending !== undefined ? ch.pending : (monthly || 0)),
+            Number(current.pending !== undefined ? current.pending : (monthly || 0))
+          );
+          combinedChitsMap.set(key, {
+            ...current,
+            ...ch,
+            monthlyInstallment: monthly,
+            paidAmount: Math.max(localPaidAmt, currentPaidAmt),
+            totalPaid: Math.max(localPaidAmt, currentPaidAmt),
+            paymentStatus: isPaid ? 'PAID' : (ch.paymentStatus || current.paymentStatus || 'DUE'),
+            pending: isPaid ? 0 : (pendingCandidate > 0 ? pendingCandidate : monthly),
+          });
+        });
+      }
+      const chits = Array.from(combinedChitsMap.values());
 
       // Calculate total paid & pending from actual chits
-      const totalPaid =
-        c.totalPaid ??
-        existing?.totalPaid ??
-        chits.reduce((acc: number, ch: any) => acc + Number(ch.totalPaid || ch.paidAmount || 0), 0);
+      const calculatedPaidFromChits = chits.reduce(
+        (acc: number, ch: any) => acc + Number(ch.totalPaid || ch.paidAmount || 0),
+        0
+      );
+      const totalPaid = Math.max(
+        Number(c.totalPaid || 0),
+        Number(existing?.totalPaid || 0),
+        calculatedPaidFromChits
+      );
 
-      const pending =
-        c.pending ??
-        existing?.pending ??
-        chits.reduce((acc: number, ch: any) => acc + Number(ch.pending || (ch.paymentStatus === 'DUE' ? ch.monthlyInstallment : 0) || 0), 0);
+      const calculatedPendingFromChits = chits.reduce(
+        (acc: number, ch: any) =>
+          acc + Number(ch.pending !== undefined ? ch.pending : (ch.paymentStatus === 'DUE' ? ch.monthlyInstallment : 0) || 0),
+        0
+      );
+      const pending = chits.length > 0
+        ? calculatedPendingFromChits
+        : (c.pending !== undefined ? c.pending : (existing?.pending ?? 0));
 
       return {
         id: c.customerCode || c._id,
@@ -134,9 +186,17 @@ export const DataSyncManager = {
     });
 
     // Merge any locally added customers that haven't reached mongo yet
-    const unmergedLocal = localSaved.filter(
-      (loc) => !mappedMongo.some((m) => m.id === loc.id || (loc.mongoId && m.mongoId === loc.mongoId))
-    );
+    const unmergedLocal = localSaved.filter((loc) => {
+      const locPhoneClean = (loc.phone || loc.mobile || '').replace(/\D/g, '');
+      return !mappedMongo.some((m) => {
+        const mPhoneClean = (m.phone || m.mobile || '').replace(/\D/g, '');
+        return (
+          m.id === loc.id ||
+          (loc.mongoId && m.mongoId === loc.mongoId) ||
+          (locPhoneClean && mPhoneClean && locPhoneClean === mPhoneClean)
+        );
+      });
+    });
 
     const merged = [...mappedMongo, ...unmergedLocal]
       .filter((c) => !isMockCustomer(c))
@@ -323,38 +383,166 @@ export const DataSyncManager = {
     customerId: string;
     groupId: string;
     groupName: string;
-    scheme: string;
+    scheme: 'Regular' | 'Fixed' | 'Auction' | string;
     chitValue: number;
     duration: number;
     monthlyInstallment: number;
+    customerPhone?: string;
+    customerMongoId?: string;
+    customerName?: string;
+    dueDate?: string;
   }): Promise<void> {
     const customers = await this.getCustomers();
+    const targetCleanPhone = (params.customerPhone || '').replace(/\D/g, '');
+    let matchedCustomer: Customer | null = null;
+    let newChitRecorded: any = null;
+
+    // Normalize scheme to CustomerChit format
+    const schemeUpper = (params.scheme || 'Regular').toUpperCase();
+    const normalizedScheme: 'Regular' | 'Fixed' | 'Auction' = schemeUpper.includes('FIX')
+      ? 'Fixed'
+      : schemeUpper.includes('AUC')
+      ? 'Auction'
+      : 'Regular';
+
     const updatedCusts = customers.map((c) => {
-      if (c.id === params.customerId || c.mongoId === params.customerId) {
+      const cCleanPhone = (c.phone || c.mobile || '').replace(/\D/g, '');
+      const isMatch =
+        c.id === params.customerId ||
+        c.mongoId === params.customerId ||
+        (params.customerMongoId && (c.mongoId === params.customerMongoId || c.id === params.customerMongoId)) ||
+        (c as any).customerCode === params.customerId ||
+        (targetCleanPhone && cCleanPhone && cCleanPhone === targetCleanPhone);
+
+      if (isMatch) {
         const existingChits = Array.isArray(c.chits) ? c.chits : [];
         const nextTicket = (existingChits.length + 1).toString();
+        const effectiveDueDate =
+          params.dueDate ||
+          new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
+
         const newChit = {
           groupId: params.groupId,
           groupName: params.groupName,
-          scheme: params.scheme,
+          scheme: normalizedScheme,
           chitValue: params.chitValue,
           duration: params.duration,
           monthlyInstallment: params.monthlyInstallment,
           ticketNumber: nextTicket,
           paymentStatus: 'DUE',
           joinedDate: new Date().toISOString(),
-          dueDate: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+          dueDate: effectiveDueDate,
         };
-        return {
+
+        newChitRecorded = newChit;
+        const updated = {
           ...c,
           pending: (Number(c.pending) || 0) + params.monthlyInstallment,
-          chits: [...existingChits, newChit],
+          chits: [...existingChits, newChit as any],
+          activeChits: existingChits.length + 1,
         };
+        matchedCustomer = updated;
+        return updated;
       }
       return c;
     });
 
+    // If customer wasn't matched in existing customer list, add them
+    if (!matchedCustomer) {
+      const effectiveDueDate =
+        params.dueDate ||
+        new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
+
+      const newChit = {
+        groupId: params.groupId,
+        groupName: params.groupName,
+        scheme: normalizedScheme,
+        chitValue: params.chitValue,
+        duration: params.duration,
+        monthlyInstallment: params.monthlyInstallment,
+        ticketNumber: '1',
+        paymentStatus: 'DUE',
+        joinedDate: new Date().toISOString(),
+        dueDate: effectiveDueDate,
+      };
+      newChitRecorded = newChit;
+
+      const freshCust: Customer = {
+        id: params.customerId,
+        mongoId: params.customerMongoId,
+        name: params.customerName || 'Member',
+        fullName: params.customerName || 'Member',
+        phone: params.customerPhone || '',
+        mobile: params.customerPhone || '',
+        aadhar: '—',
+        pan: '—',
+        address: '',
+        branch: 'Head Office',
+        pending: params.monthlyInstallment,
+        totalPaid: 0,
+        activeChits: 1,
+        chits: [newChit as any],
+        status: 'ACTIVE',
+      };
+      matchedCustomer = freshCust;
+      updatedCusts.push(freshCust);
+    }
+
+    // 1. Save updated customer list to local secureStorage
     await secureStorage.setItem('synced_customers', JSON.stringify(updatedCusts));
+
+    // 2. Ensure group is registered in custom_chit_groups with updated filled count
+    try {
+      const customStored = await secureStorage.getItem('custom_chit_groups');
+      const customGroups: ChitGroup[] = customStored ? JSON.parse(customStored) : [];
+      const gIndex = customGroups.findIndex(
+        (g) =>
+          g.id.toLowerCase() === params.groupId.toLowerCase() ||
+          g.name.toLowerCase() === params.groupName.toLowerCase()
+      );
+
+      if (gIndex >= 0) {
+        customGroups[gIndex].filled = (customGroups[gIndex].filled || 0) + 1;
+      } else {
+        customGroups.push({
+          id: params.groupId,
+          name: params.groupName,
+          type: (params.scheme as any) || 'Regular',
+          value: params.chitValue,
+          duration: params.duration,
+          currentMonth: 1,
+          members: 20,
+          filled: 1,
+          status: 'ACTIVE',
+        });
+      }
+      await secureStorage.setItem('custom_chit_groups', JSON.stringify(customGroups));
+    } catch (e) {
+      console.warn('Failed to update custom_chit_groups:', e);
+    }
+
+    // 3. Sync to backend MongoDB if customer has a valid MongoDB ID or customerCode
+    const targetMongoId =
+      (matchedCustomer as any)?.mongoId ||
+      (params.customerMongoId && params.customerMongoId.length === 24 ? params.customerMongoId : null) ||
+      (params.customerId && params.customerId.length === 24 ? params.customerId : null);
+
+    if (targetMongoId) {
+      try {
+        const baseUrl = await getActiveBaseUrl();
+        const payload = {
+          chits: (matchedCustomer as any)?.chits || (newChitRecorded ? [newChitRecorded] : []),
+          pending: (matchedCustomer as any)?.pending,
+        };
+        await fetch(`${baseUrl}/customers/${targetMongoId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch (err) {
+        console.warn('Backend sync chit to customer PATCH failed (saved locally):', err);
+      }
+    }
   },
 
   /**
@@ -401,19 +589,79 @@ export const DataSyncManager = {
     const updatedLedger = [entry, ...ledger];
     await secureStorage.setItem('synced_ledger', JSON.stringify(updatedLedger));
 
-    // Update customer's paid & pending balances in persistent storage
+    // Update customer's paid & pending balances and chit payment status
     const customers = await this.getCustomers();
+    const cleanReceiptPhone = (receiptData.customerId || '').replace(/\D/g, '');
+    let targetMongoId: string | null = null;
+    let customerPayload: any = null;
+
     const updatedCusts = customers.map((c) => {
-      if (c.id === receiptData.customerId || c.name === receiptData.customerName) {
+      const cPhone = (c.phone || c.mobile || '').replace(/\D/g, '');
+      const isTarget =
+        c.id === receiptData.customerId ||
+        c.mongoId === receiptData.customerId ||
+        (cleanReceiptPhone && cPhone && cleanReceiptPhone === cPhone) ||
+        (c.name && receiptData.customerName && c.name.toLowerCase() === receiptData.customerName.toLowerCase()) ||
+        (c.fullName && receiptData.customerName && c.fullName.toLowerCase() === receiptData.customerName.toLowerCase());
+
+      if (isTarget) {
+        targetMongoId = c.mongoId || c.id;
+        const newPaid = Number(c.totalPaid || 0) + Number(receiptData.amount);
+        const newPending = Math.max(0, Number(c.pending || 0) - Number(receiptData.amount));
+
+        const updatedChits = Array.isArray(c.chits)
+          ? c.chits.map((ch: any) => {
+              const matchesGroup =
+                !receiptData.chitGroup ||
+                String(ch.groupId || '').toLowerCase() === receiptData.chitGroup.toLowerCase() ||
+                String(ch.groupName || '').toLowerCase() === receiptData.chitGroup.toLowerCase();
+
+              if (matchesGroup) {
+                const chPaid = Number(ch.paidAmount || ch.totalPaid || 0) + Number(receiptData.amount);
+                const chPending = Math.max(0, Number(ch.pending || ch.monthlyInstallment || 0) - Number(receiptData.amount));
+                return {
+                  ...ch,
+                  paidAmount: chPaid,
+                  totalPaid: chPaid,
+                  pending: chPending,
+                  paymentStatus: chPending === 0 ? 'PAID' : 'DUE',
+                };
+              }
+              return ch;
+            })
+          : [];
+
+        customerPayload = {
+          totalPaid: newPaid,
+          pending: newPending,
+          chits: updatedChits,
+        };
+
         return {
           ...c,
-          totalPaid: Number(c.totalPaid || 0) + Number(receiptData.amount),
-          pending: Math.max(0, Number(c.pending || 0) - Number(receiptData.amount)),
+          totalPaid: newPaid,
+          pending: newPending,
+          chits: updatedChits,
         };
       }
       return c;
     });
+
     await secureStorage.setItem('synced_customers', JSON.stringify(updatedCusts));
+
+    // Persist to backend MongoDB
+    if (targetMongoId && customerPayload) {
+      try {
+        const baseUrl = await getActiveBaseUrl();
+        await fetch(`${baseUrl}/customers/${targetMongoId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(customerPayload),
+        });
+      } catch (err) {
+        console.warn('Could not sync customer payment update to backend:', err);
+      }
+    }
   },
 
   /**
