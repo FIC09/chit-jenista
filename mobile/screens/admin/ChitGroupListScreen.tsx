@@ -131,10 +131,8 @@ export const ChitGroupListScreen: React.FC<{ navigation: any }> = ({ navigation 
               </View>
             </View>
 
-            <Text style={styles.membersCountText}>{item.filled || 0} Enrolled Members</Text>
-
             <View style={styles.amountDueRow}>
-              <Text style={styles.groupAmountText}>{formatCurrency(item.value / (item.duration || 20))}/mo</Text>
+              <Text style={styles.membersCountText}>{item.filled || 0} Enrolled Members</Text>
               <Text style={styles.nextDueText}>
                 {isClosed ? 'Completed' : 'Due: 15th monthly'}
               </Text>
