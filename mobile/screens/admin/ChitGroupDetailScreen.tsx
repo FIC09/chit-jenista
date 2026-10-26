@@ -79,13 +79,12 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
             const chGId = String(ch.groupId || '').toLowerCase().trim();
             const chGName = String(ch.groupName || '').toLowerCase().trim();
 
+            // Strict matching: only include if chit belongs to THIS group
             const isMatch =
               (targetId && chGId === targetId) ||
               (targetName && chGName === targetName) ||
-              (targetName && chGId === targetName) ||
               (targetId && chGName === targetId) ||
-              (targetId && chGId.includes(targetId)) ||
-              (targetName && chGName.includes(targetName));
+              (targetName && chGId === targetName);
 
             if (isMatch) {
               const custId = c.id || (c as any).customerCode || c.mongoId || 'CUST';

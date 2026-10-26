@@ -116,7 +116,33 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
     setGroupSearchQuery('');
   };
 
+  const [filterOnlyThisGroup, setFilterOnlyThisGroup] = useState(Boolean(chitGroup));
+
+  // Keep filterOnlyThisGroup in sync if chitGroup changes
+  useEffect(() => {
+    if (chitGroup) {
+      setFilterOnlyThisGroup(true);
+    }
+  }, [chitGroup]);
+
   const filteredMembers = customersList.filter((c: any) => {
+    // If filterOnlyThisGroup is active and chitGroup is set, only show members enrolled in that group
+    if (filterOnlyThisGroup && chitGroup.trim()) {
+      const targetGroup = chitGroup.trim().toLowerCase();
+      const isEnrolledInGroup = Array.isArray(c.chits) && c.chits.some((ch: any) => {
+        const gId = String(ch.groupId || '').toLowerCase().trim();
+        const gName = String(ch.groupName || '').toLowerCase().trim();
+        return (
+          gId === targetGroup ||
+          gName === targetGroup ||
+          (gId && targetGroup.includes(gId)) ||
+          (gName && targetGroup.includes(gName)) ||
+          (targetGroup && gName && gName.includes(targetGroup))
+        );
+      });
+      if (!isEnrolledInGroup) return false;
+    }
+
     const q = memberSearchQuery.toLowerCase().trim();
     const cleanQ = memberSearchQuery.replace(/\D/g, '');
     const cPhone = (c.phone || c.mobile || '').replace(/\D/g, '');
@@ -391,6 +417,51 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
               </TouchableOpacity>
             )}
           </View>
+
+          {/* Group Filter Tab / Banner */}
+          {chitGroup ? (
+            <View style={styles.groupFilterBanner}>
+              <TouchableOpacity
+                style={[
+                  styles.groupFilterChip,
+                  filterOnlyThisGroup && styles.groupFilterChipActive,
+                ]}
+                onPress={() => setFilterOnlyThisGroup(true)}
+              >
+                <Ionicons
+                  name="layers"
+                  size={13}
+                  color={filterOnlyThisGroup ? '#0B1A30' : Colors.purpleAccent}
+                />
+                <Text
+                  style={[
+                    styles.groupFilterChipText,
+                    filterOnlyThisGroup && styles.groupFilterChipTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {chitGroup} Members ({customersList.filter((c: any) => Array.isArray(c.chits) && c.chits.some((ch: any) => String(ch.groupId || ch.groupName || '').toLowerCase().includes(chitGroup.toLowerCase()))).length})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.groupFilterChip,
+                  !filterOnlyThisGroup && styles.groupFilterChipActive,
+                ]}
+                onPress={() => setFilterOnlyThisGroup(false)}
+              >
+                <Text
+                  style={[
+                    styles.groupFilterChipText,
+                    !filterOnlyThisGroup && styles.groupFilterChipTextActive,
+                  ]}
+                >
+                  All Directory ({customersList.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           {/* Members List */}
           <FlatList
@@ -757,6 +828,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#0F172A',
+  },
+  groupFilterBanner: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 20,
+    marginBottom: 6,
+  },
+  groupFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 6,
+  },
+  groupFilterChipActive: {
+    backgroundColor: Colors.gold.primary,
+    borderColor: Colors.gold.dark,
+  },
+  groupFilterChipText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  groupFilterChipTextActive: {
+    color: '#0B1A30',
   },
   modalList: {
     paddingHorizontal: 20,
