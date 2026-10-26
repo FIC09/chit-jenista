@@ -85,13 +85,6 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
           onPress={() => navigateTo('Ledger')}
         />
 
-        <DrawerItem
-          title="Receipts"
-          icon="receipt-outline"
-          isActive={currentRoute === 'ReceiptEntry'}
-          onPress={() => navigateTo('ReceiptEntry')}
-        />
-
         {!isCustomer && (
           <>
             <View style={styles.menuDivider} />
@@ -122,6 +115,13 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
               icon="shield-checkmark-outline"
               isActive={currentRoute === 'PaymentVerifications'}
               onPress={() => navigateTo('PaymentVerifications')}
+            />
+
+            <DrawerItem
+              title="Notifications"
+              icon="notifications-outline"
+              isActive={currentRoute === 'Notifications'}
+              onPress={() => navigateTo('Notifications')}
             />
           </>
         )}

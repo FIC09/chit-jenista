@@ -574,26 +574,75 @@ export const DataSyncManager = {
     executive?: string;
   }): Promise<void> {
     const ledger = await this.getLedgerTransactions();
+    // Update customer's paid & pending balances and chit payment status
+    const customers = await this.getCustomers();
+    const cleanReceiptPhone = (receiptData.customerId || '').replace(/\D/g, '');
+    let targetMongoId: string | null = null;
+    let customerPayload: any = null;
+
+    // Resolve matched customer & group names
+    let resolvedCustomerName = receiptData.customerName || '';
+    let resolvedCustomerId = receiptData.customerId || '';
+    let resolvedGroupName = receiptData.chitGroup || '';
+    let resolvedGroupId = receiptData.chitGroup || '';
+
+    const matchedCust = customers.find((c) => {
+      const cPhone = (c.phone || c.mobile || '').replace(/\D/g, '');
+      return (
+        c.id === receiptData.customerId ||
+        c.mongoId === receiptData.customerId ||
+        (cleanReceiptPhone && cPhone && cleanReceiptPhone === cPhone) ||
+        (c.name && receiptData.customerName && c.name.toLowerCase() === receiptData.customerName.toLowerCase()) ||
+        (c.fullName && receiptData.customerName && c.fullName.toLowerCase() === receiptData.customerName.toLowerCase())
+      );
+    });
+
+    if (matchedCust) {
+      resolvedCustomerName = matchedCust.name || matchedCust.fullName || resolvedCustomerName;
+      resolvedCustomerId = matchedCust.id || matchedCust.mongoId || resolvedCustomerId;
+
+      // Match group name from customer's chits if receiptData.chitGroup is empty or matches
+      if (Array.isArray(matchedCust.chits) && matchedCust.chits.length > 0) {
+        const matchingChit = receiptData.chitGroup
+          ? matchedCust.chits.find(
+              (ch: any) =>
+                String(ch.groupId || '').toLowerCase() === receiptData.chitGroup.toLowerCase() ||
+                String(ch.groupName || '').toLowerCase() === receiptData.chitGroup.toLowerCase()
+            ) || matchedCust.chits[0]
+          : matchedCust.chits[0];
+
+        if (matchingChit) {
+          resolvedGroupName = matchingChit.groupName || matchingChit.groupId || resolvedGroupName;
+          resolvedGroupId = matchingChit.groupId || resolvedGroupId;
+        }
+      }
+    }
+
+    if (!resolvedCustomerName || resolvedCustomerName === 'Member' || /^\d+$/.test(resolvedCustomerName)) {
+      if (matchedCust?.name) resolvedCustomerName = matchedCust.name;
+    }
+    if (!resolvedGroupName) {
+      resolvedGroupName = 'Chit Group';
+    }
+
     const entry: LedgerTransaction = {
       id: receiptData.receiptNo,
       date: new Date().toISOString(),
       type: 'CREDIT',
       category: 'INSTALLMENT',
       amount: Number(receiptData.amount),
-      reference: `${receiptData.customerId} / ${receiptData.chitGroup}`,
-      description: `Collection Voucher #${receiptData.receiptNo} - ${receiptData.customerName}`,
+      reference: `${resolvedCustomerId || receiptData.customerId} / ${resolvedGroupName}`,
+      description: `Collection Voucher #${receiptData.receiptNo} - ${resolvedCustomerName}`,
       collectedBy: receiptData.executive || 'Staff Executive',
       paymentMode: receiptData.paymentMode,
+      customerId: resolvedCustomerId || receiptData.customerId,
+      customerName: resolvedCustomerName,
+      groupId: resolvedGroupId,
+      groupName: resolvedGroupName,
     };
 
     const updatedLedger = [entry, ...ledger];
     await secureStorage.setItem('synced_ledger', JSON.stringify(updatedLedger));
-
-    // Update customer's paid & pending balances and chit payment status
-    const customers = await this.getCustomers();
-    const cleanReceiptPhone = (receiptData.customerId || '').replace(/\D/g, '');
-    let targetMongoId: string | null = null;
-    let customerPayload: any = null;
 
     const updatedCusts = customers.map((c) => {
       const cPhone = (c.phone || c.mobile || '').replace(/\D/g, '');

@@ -229,6 +229,7 @@ export const CustomerDetailScreen: React.FC<{ route: any; navigation: any }> = (
               customerName: customer.name,
               mobile: customer.phone,
               amount: customer.pending || 5000,
+              chitGroup: customer.chits?.[0]?.groupName || customer.chits?.[0]?.groupId || '',
             })
           }
           style={styles.primaryActionBtn}

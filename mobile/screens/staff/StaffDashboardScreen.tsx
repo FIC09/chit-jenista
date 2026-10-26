@@ -181,6 +181,7 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
                       customerName: item.name,
                       mobile: item.phone || item.mobile,
                       amount: item.pending,
+                      chitGroup: item.chits?.[0]?.groupName || item.chits?.[0]?.groupId || '',
                     })
                   }
                 >

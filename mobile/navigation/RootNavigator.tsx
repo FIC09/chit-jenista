@@ -24,6 +24,7 @@ import { ReportsScreen } from '../screens/admin/ReportsScreen';
 import { ManageBanksScreen } from '../screens/admin/ManageBanksScreen';
 import { LedgerScreen } from '../screens/admin/LedgerScreen';
 import { PaymentVerificationsScreen } from '../screens/admin/PaymentVerificationsScreen';
+import { NotificationsScreen } from '../screens/admin/NotificationsScreen';
 import { SettingsScreen } from '../screens/admin/SettingsScreen';
 import { StaffDashboardScreen } from '../screens/staff/StaffDashboardScreen';
 import { CustomerDashboardScreen } from '../screens/customer/CustomerDashboardScreen';
@@ -73,11 +74,6 @@ const AdminDrawer = () => {
         options={{ title: 'Chit Groups & Plans' }}
       />
       <Drawer.Screen
-        name="ReceiptEntry"
-        component={ReceiptEntryScreen}
-        options={{ title: 'Receipt Desk & Collections' }}
-      />
-      <Drawer.Screen
         name="Ledger"
         component={LedgerScreen}
         options={{ title: 'General Ledger' }}
@@ -96,6 +92,11 @@ const AdminDrawer = () => {
         name="Reports"
         component={ReportsScreen}
         options={{ title: 'Non-Payers & Defaulters' }}
+      />
+      <Drawer.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ title: 'Notifications & Alerts' }}
       />
       <Drawer.Screen
         name="Settings"
@@ -141,11 +142,6 @@ const StaffDrawer = () => {
         name="AddCustomer"
         component={AddCustomerScreen}
         options={{ title: 'Register Member' }}
-      />
-      <Drawer.Screen
-        name="ReceiptEntry"
-        component={ReceiptEntryScreen}
-        options={{ title: 'Issue Receipt Voucher' }}
       />
       <Drawer.Screen
         name="Reports"
@@ -221,6 +217,11 @@ export const RootNavigator = () => {
               component={ReceiptEntryScreen}
               options={{ headerShown: true, title: 'Receipt Desk & Collections', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
             />
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{ headerShown: true, title: 'Notifications & Alerts', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+            />
           </>
         ) : (
           // Admin Flow with Full Sidebar
@@ -245,6 +246,11 @@ export const RootNavigator = () => {
               name="ReceiptEntry"
               component={ReceiptEntryScreen}
               options={{ headerShown: true, title: 'Receipt Desk & Collections', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+            />
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{ headerShown: true, title: 'Notifications & Alerts', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
             />
           </>
         )}

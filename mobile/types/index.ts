@@ -93,6 +93,10 @@ export interface LedgerTransaction {
   description: string;
   collectedBy: string;
   paymentMode: string;
+  customerId?: string;
+  customerName?: string;
+  groupId?: string;
+  groupName?: string;
 }
 
 export interface StaffReceipt {

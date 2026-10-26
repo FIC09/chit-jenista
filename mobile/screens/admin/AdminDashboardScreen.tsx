@@ -297,7 +297,7 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           <View style={styles.headerRightActions}>
             <TouchableOpacity
               style={styles.iconBtn}
-              onPress={() => navigation.navigate('Reports')}
+              onPress={() => navigation.navigate('Notifications')}
               activeOpacity={0.7}
             >
               <Ionicons name="notifications-outline" size={20} color={Colors.white} />

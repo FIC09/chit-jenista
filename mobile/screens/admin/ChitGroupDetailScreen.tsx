@@ -34,7 +34,7 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
   // Add Member Modal State (Matches Web App exact workflow)
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
-  
+
   // Search & Verification state
   const [searchMobile, setSearchMobile] = useState('');
   const [foundCustomer, setFoundCustomer] = useState<any | null>(null);
@@ -484,8 +484,8 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
                             isFix
                               ? styles.schemePillFix
                               : isAuc
-                              ? styles.schemePillAuc
-                              : styles.schemePillReg,
+                                ? styles.schemePillAuc
+                                : styles.schemePillReg,
                           ]}
                         >
                           <Text
@@ -494,8 +494,8 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
                               isFix
                                 ? styles.schemeTextFix
                                 : isAuc
-                                ? styles.schemeTextAuc
-                                : styles.schemeTextReg,
+                                  ? styles.schemeTextAuc
+                                  : styles.schemeTextReg,
                             ]}
                           >
                             {schemeName}
@@ -519,7 +519,7 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}
                           onPress={() => {
                             if (item.mobile && item.mobile !== '—') {
-                              Linking.openURL(`tel:${item.mobile.replace(/\D/g, '')}`).catch(() => {});
+                              Linking.openURL(`tel:${item.mobile.replace(/\D/g, '')}`).catch(() => { });
                             }
                           }}
                         >

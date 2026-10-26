@@ -23,21 +23,96 @@ export const LedgerScreen: React.FC = () => {
 
   const loadLedger = async () => {
     try {
-      const data = await DataSyncManager.getLedgerTransactions();
-      const mapped = data.map((t: any) => ({
-        id: t.id,
-        customerName: t.description?.split('-')[1]?.trim() || t.reference?.split('/')[0]?.trim() || 'Member',
-        groupName: t.reference?.split('/')[1]?.trim() || 'Chit Group',
-        date: formatDate(t.date),
-        type: t.type || 'CREDIT',
-        category: t.category || 'INSTALLMENT',
-        amount: Number(t.amount || 0),
-        status: t.status || 'COMPLETED',
-        reference: t.reference || t.id,
-        description: t.description || 'Installment Payment',
-        collectedBy: t.collectedBy || 'Jenista Admin',
-        paymentMode: t.paymentMode || 'Bank Transfer',
-      }));
+      const [data, customers] = await Promise.all([
+        DataSyncManager.getLedgerTransactions(),
+        DataSyncManager.getCustomers(),
+      ]);
+
+      const mapped = data.map((t: any) => {
+        // 1. Resolve Customer Name
+        let resolvedCust = t.customerName;
+
+        // Try extracting from description: "Collection Voucher #REC-123456 - Pooja"
+        if (!resolvedCust || /^\d+$/.test(resolvedCust) || resolvedCust === 'Member') {
+          if (t.description && t.description.includes(' - ')) {
+            const parts = t.description.split(' - ');
+            const candidate = parts.slice(1).join(' - ').trim();
+            if (candidate && !/^\d+$/.test(candidate) && !candidate.startsWith('Deposited to')) {
+              resolvedCust = candidate;
+            }
+          }
+        }
+
+        // Try matching against customer database by reference / customerId
+        const refParts = (t.reference || '').split('/');
+        const refCustId = (t.customerId || refParts[0] || '').trim();
+        const cleanRefDigits = refCustId.replace(/\D/g, '');
+
+        if (!resolvedCust || /^\d+$/.test(resolvedCust) || resolvedCust === 'Member') {
+          const matched = customers.find((c: any) => {
+            const cPhone = (c.phone || c.mobile || '').replace(/\D/g, '');
+            return (
+              c.id === refCustId ||
+              c.mongoId === refCustId ||
+              (cleanRefDigits && cPhone && cleanRefDigits === cPhone)
+            );
+          });
+          if (matched) {
+            resolvedCust = matched.name || matched.fullName;
+          }
+        }
+
+        // Fallback for customerName
+        if (!resolvedCust || /^\d+$/.test(resolvedCust)) {
+          const candidate = refParts[0]?.trim();
+          resolvedCust = candidate && !/^\d+$/.test(candidate) ? candidate : 'Valued Member';
+        }
+
+        // 2. Resolve Group Name
+        let resolvedGrp = t.groupName;
+        const refGrpCandidate = refParts[1]?.trim();
+        if (!resolvedGrp || resolvedGrp === 'Chit Group') {
+          if (refGrpCandidate && refGrpCandidate !== 'undefined' && refGrpCandidate !== 'null') {
+            resolvedGrp = refGrpCandidate;
+          }
+        }
+
+        if (!resolvedGrp || resolvedGrp === 'Chit Group') {
+          // Check if customer has a chit group
+          const matched = customers.find((c: any) => {
+            const cPhone = (c.phone || c.mobile || '').replace(/\D/g, '');
+            return (
+              c.id === refCustId ||
+              c.mongoId === refCustId ||
+              (cleanRefDigits && cPhone && cleanRefDigits === cPhone) ||
+              c.name === resolvedCust
+            );
+          });
+          if (matched && Array.isArray(matched.chits) && matched.chits.length > 0) {
+            resolvedGrp = matched.chits[0].groupName || matched.chits[0].groupId;
+          }
+        }
+
+        if (!resolvedGrp || resolvedGrp === 'undefined') {
+          resolvedGrp = 'Chit Group';
+        }
+
+        return {
+          id: t.id,
+          customerName: resolvedCust,
+          groupName: resolvedGrp,
+          date: formatDate(t.date),
+          type: t.type || 'CREDIT',
+          category: t.category || 'INSTALLMENT',
+          amount: Number(t.amount || 0),
+          status: t.status || 'COMPLETED',
+          reference: t.reference || t.id,
+          description: t.description || 'Installment Payment',
+          collectedBy: t.collectedBy || 'Jenista Admin',
+          paymentMode: t.paymentMode || 'Bank Transfer',
+        };
+      });
+
       setTransactions(mapped);
     } catch (e) {
       console.warn('Failed to load ledger:', e);
