@@ -16,9 +16,11 @@ import { secureStorage } from '../../services/storage';
 import { DataSyncManager } from '../../services/dataSync';
 import { PaymentRequest } from '../../types';
 
+import { useAuth } from '../../store/AuthContext';
+
 export interface AppNotificationItem {
   id: string;
-  type: 'PAYMENT_VERIFICATION' | 'OVERDUE_DUE' | 'NEW_MEMBER';
+  type: 'PAYMENT_VERIFICATION' | 'OVERDUE_DUE' | 'NEW_MEMBER' | 'PAYMENT_APPROVED' | 'INSTALLMENT_DUE' | 'RECEIPT_RECORDED';
   title: string;
   subtitle: string;
   time: string;
@@ -33,87 +35,240 @@ export interface AppNotificationItem {
 }
 
 export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<AppNotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'PAYMENTS' | 'DUES'>('ALL');
 
+  const isCustomer = user?.role === 'CUSTOMER';
+  const isStaff = user?.role === 'STAFF' || user?.role === 'COLLECTION_AGENT';
+
   const loadNotifications = async () => {
     try {
       const items: AppNotificationItem[] = [];
 
-      // 1. Fetch pending payment verifications
-      const rawReqs = await secureStorage.getItem('payment_requests');
-      if (rawReqs) {
-        try {
-          const parsed: PaymentRequest[] = JSON.parse(rawReqs);
-          if (Array.isArray(parsed)) {
-            const pendingReqs = parsed.filter(
-              (p) =>
-                (!p.status || p.status === 'PENDING' || p.status === ('PENDING_VERIFICATION' as any)) &&
-                !['PAY-78201', 'PAY-78202', 'PAY-78203', 'PAY-78190'].includes(p.id)
-            );
+      if (isCustomer) {
+        // Customer notifications:
+        // 1. Payment Requests submitted by this customer
+        const rawReqs = await secureStorage.getItem('payment_requests');
+        if (rawReqs) {
+          try {
+            const parsed: PaymentRequest[] = JSON.parse(rawReqs);
+            if (Array.isArray(parsed)) {
+              const myReqs = parsed.filter(
+                (p) =>
+                  p.customerId === user?.id ||
+                  (user?.phone && p.customerMobile === user.phone) ||
+                  (user?.name && p.customerName?.toLowerCase() === user.name?.toLowerCase())
+              );
 
-            pendingReqs.forEach((req) => {
-              items.push({
-                id: `PAY-${req.id}`,
-                type: 'PAYMENT_VERIFICATION',
-                title: 'Online Payment Verification Required',
-                subtitle: `${req.customerName} submitted payment of ${formatCurrency(Number(req.amount))} via ${req.paymentMode || 'Online'} (Ref: ${req.referenceNumber || 'N/A'})`,
-                time: req.requestedAt ? new Date(req.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Pending',
-                route: 'PaymentVerifications',
-                amount: Number(req.amount),
-                badgeText: 'APPROVAL NEEDED',
-                badgeColor: '#D97706',
-                icon: 'receipt-outline',
-                iconBg: '#FEF3C7',
-                iconColor: '#B45309',
+              myReqs.forEach((req) => {
+                const isApproved = req.status === 'APPROVED';
+                items.push({
+                  id: `PAY-${req.id}`,
+                  type: isApproved ? 'PAYMENT_APPROVED' : 'PAYMENT_VERIFICATION',
+                  title: isApproved ? 'Payment Verified & Credited' : 'Payment Awaiting Verification',
+                  subtitle: isApproved
+                    ? `Your payment of ${formatCurrency(Number(req.amount))} via ${req.paymentMode || 'Online'} has been verified and adjusted.`
+                    : `Payment of ${formatCurrency(Number(req.amount))} submitted (Ref: ${req.referenceNumber || 'N/A'}). Admin verification in progress.`,
+                  time: req.requestedAt
+                    ? new Date(req.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                    : 'Recent',
+                  route: 'CustomerPaymentHistory',
+                  amount: Number(req.amount),
+                  badgeText: isApproved ? 'VERIFIED' : 'UNDER REVIEW',
+                  badgeColor: isApproved ? '#059669' : '#D97706',
+                  icon: isApproved ? 'checkmark-circle-outline' : 'time-outline',
+                  iconBg: isApproved ? '#D1FAE5' : '#FEF3C7',
+                  iconColor: isApproved ? '#059669' : '#B45309',
+                });
               });
-            });
-          }
-        } catch {}
+            }
+          } catch {}
+        }
+
+        // 2. Customer Chit Dues
+        const custs = await DataSyncManager.getCustomers();
+        const currentCust = custs.find(
+          (c) =>
+            c.id === user?.id ||
+            (user?.phone && c.phone === user?.phone) ||
+            (user?.name && c.name?.toLowerCase() === user.name?.toLowerCase())
+        );
+
+        if (currentCust && Number(currentCust.pending || 0) > 0) {
+          items.push({
+            id: `DUE-${currentCust.id}`,
+            type: 'INSTALLMENT_DUE',
+            title: 'Upcoming Installment Due',
+            subtitle: `You have an active pending due balance of ${formatCurrency(Number(currentCust.pending || 0))}. Pay early to maintain high bidding eligibility.`,
+            time: 'Due This Cycle',
+            route: 'CustomerHome',
+            amount: Number(currentCust.pending || 0),
+            badgeText: 'INSTALLMENT DUE',
+            badgeColor: '#EF4444',
+            icon: 'alert-circle-outline',
+            iconBg: '#FEE2E2',
+            iconColor: '#DC2626',
+          });
+        }
+
+        // 3. Receipt updates for customer
+        const rawReceipts = await secureStorage.getItem('local_receipts');
+        if (rawReceipts) {
+          try {
+            const receipts = JSON.parse(rawReceipts);
+            if (Array.isArray(receipts)) {
+              const myReceipts = receipts.filter(
+                (r: any) =>
+                  r.customerId === user?.id ||
+                  (user?.phone && r.customerPhone === user.phone) ||
+                  (user?.name && r.customerName?.toLowerCase() === user.name?.toLowerCase())
+              );
+              myReceipts.slice(0, 3).forEach((r: any) => {
+                items.push({
+                  id: `RCPT-${r.receiptNo || r.id}`,
+                  type: 'RECEIPT_RECORDED',
+                  title: `Official Receipt #${r.receiptNo || 'REC'} Issued`,
+                  subtitle: `Field payment of ${formatCurrency(Number(r.amount || 0))} recorded successfully.`,
+                  time: r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Recent',
+                  route: 'CustomerPaymentHistory',
+                  amount: Number(r.amount || 0),
+                  badgeText: 'RECEIPT ISSUED',
+                  badgeColor: '#2563EB',
+                  icon: 'receipt-outline',
+                  iconBg: '#DBEAFE',
+                  iconColor: '#1D4ED8',
+                });
+              });
+            }
+          } catch {}
+        }
+      } else if (isStaff) {
+        // Staff notifications:
+        // 1. Members with pending collections
+        const custs = await DataSyncManager.getCustomers();
+        const pendingCusts = custs.filter((c) => Number(c.pending || 0) > 0);
+
+        pendingCusts.slice(0, 10).forEach((c) => {
+          items.push({
+            id: `COLLECT-${c.id}`,
+            type: 'OVERDUE_DUE',
+            title: `Collection Pending: ${c.name}`,
+            subtitle: `Member has pending due of ${formatCurrency(Number(c.pending || 0))} in ${(c.chits && c.chits[0]?.groupName) || 'Chit Fund'}. Phone: ${c.phone || c.mobile || 'N/A'}`,
+            time: 'Action Required',
+            route: 'ReceiptEntry',
+            params: { prefillCustomer: c },
+            amount: Number(c.pending || 0),
+            badgeText: 'COLLECT DUE',
+            badgeColor: '#EF4444',
+            icon: 'cash-outline',
+            iconBg: '#FEE2E2',
+            iconColor: '#DC2626',
+          });
+        });
+
+        // 2. Staff recent receipts
+        const rawReceipts = await secureStorage.getItem('local_receipts');
+        if (rawReceipts) {
+          try {
+            const receipts = JSON.parse(rawReceipts);
+            if (Array.isArray(receipts)) {
+              receipts.slice(0, 5).forEach((r: any) => {
+                items.push({
+                  id: `RCPT-${r.receiptNo || r.id}`,
+                  type: 'RECEIPT_RECORDED',
+                  title: `Receipt #${r.receiptNo || 'REC'} Logged`,
+                  subtitle: `Collected ${formatCurrency(Number(r.amount || 0))} from ${r.customerName || 'Member'}.`,
+                  time: r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Logged',
+                  route: 'ReceiptEntry',
+                  amount: Number(r.amount || 0),
+                  badgeText: 'COLLECTION LOGGED',
+                  badgeColor: '#059669',
+                  icon: 'checkmark-done-circle-outline',
+                  iconBg: '#D1FAE5',
+                  iconColor: '#059669',
+                });
+              });
+            }
+          } catch {}
+        }
+      } else {
+        // Admin notifications:
+        // 1. Fetch pending payment verifications
+        const rawReqs = await secureStorage.getItem('payment_requests');
+        if (rawReqs) {
+          try {
+            const parsed: PaymentRequest[] = JSON.parse(rawReqs);
+            if (Array.isArray(parsed)) {
+              const pendingReqs = parsed.filter(
+                (p) =>
+                  (!p.status || p.status === 'PENDING' || p.status === ('PENDING_VERIFICATION' as any)) &&
+                  !['PAY-78201', 'PAY-78202', 'PAY-78203', 'PAY-78190'].includes(p.id)
+              );
+
+              pendingReqs.forEach((req) => {
+                items.push({
+                  id: `PAY-${req.id}`,
+                  type: 'PAYMENT_VERIFICATION',
+                  title: 'Online Payment Verification Required',
+                  subtitle: `${req.customerName} submitted payment of ${formatCurrency(Number(req.amount))} via ${req.paymentMode || 'Online'} (Ref: ${req.referenceNumber || 'N/A'})`,
+                  time: req.requestedAt ? new Date(req.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Pending',
+                  route: 'PaymentVerifications',
+                  amount: Number(req.amount),
+                  badgeText: 'APPROVAL NEEDED',
+                  badgeColor: '#D97706',
+                  icon: 'receipt-outline',
+                  iconBg: '#FEF3C7',
+                  iconColor: '#B45309',
+                });
+              });
+            }
+          } catch {}
+        }
+
+        // 2. Fetch pending / overdue customer dues
+        const custs = await DataSyncManager.getCustomers();
+        const overdueCusts = custs.filter((c) => Number(c.pending || 0) > 0);
+
+        overdueCusts.slice(0, 10).forEach((c) => {
+          items.push({
+            id: `DUE-${c.id}`,
+            type: 'OVERDUE_DUE',
+            title: `Overdue Installment: ${c.name}`,
+            subtitle: `Member has pending due of ${formatCurrency(Number(c.pending || 0))} in ${(c.chits && c.chits[0]?.groupName) || 'Chit Fund'}`,
+            time: 'Due Now',
+            route: 'CustomerDetail',
+            params: { customer: c },
+            amount: Number(c.pending || 0),
+            badgeText: 'OVERDUE DUE',
+            badgeColor: '#EF4444',
+            icon: 'alert-circle-outline',
+            iconBg: '#FEE2E2',
+            iconColor: '#DC2626',
+          });
+        });
+
+        // 3. New Members recently enrolled
+        const recentCusts = [...custs].reverse().slice(0, 3);
+        recentCusts.forEach((c) => {
+          items.push({
+            id: `MEM-${c.id}`,
+            type: 'NEW_MEMBER',
+            title: `Member Active: ${c.name}`,
+            subtitle: `Registered with ${c.activeChits || 1} active chit plan(s). Phone: ${c.phone || c.mobile || '—'}`,
+            time: 'Active',
+            route: 'CustomerDetail',
+            params: { customer: c },
+            badgeText: 'MEMBER',
+            badgeColor: '#059669',
+            icon: 'person-outline',
+            iconBg: '#D1FAE5',
+            iconColor: '#059669',
+          });
+        });
       }
-
-      // 2. Fetch pending / overdue customer dues
-      const custs = await DataSyncManager.getCustomers();
-      const overdueCusts = custs.filter((c) => Number(c.pending || 0) > 0);
-
-      overdueCusts.slice(0, 10).forEach((c) => {
-        items.push({
-          id: `DUE-${c.id}`,
-          type: 'OVERDUE_DUE',
-          title: `Overdue Installment: ${c.name}`,
-          subtitle: `Member has pending due of ${formatCurrency(Number(c.pending || 0))} in ${(c.chits && c.chits[0]?.groupName) || 'Chit Fund'}`,
-          time: 'Due Now',
-          route: 'CustomerDetail',
-          params: { customer: c },
-          amount: Number(c.pending || 0),
-          badgeText: 'OVERDUE DUE',
-          badgeColor: '#EF4444',
-          icon: 'alert-circle-outline',
-          iconBg: '#FEE2E2',
-          iconColor: '#DC2626',
-        });
-      });
-
-      // 3. New Members recently enrolled
-      const recentCusts = [...custs].reverse().slice(0, 3);
-      recentCusts.forEach((c) => {
-        items.push({
-          id: `MEM-${c.id}`,
-          type: 'NEW_MEMBER',
-          title: `Member Active: ${c.name}`,
-          subtitle: `Registered with ${c.activeChits || 1} active chit plan(s). Phone: ${c.phone || c.mobile || '—'}`,
-          time: 'Active',
-          route: 'CustomerDetail',
-          params: { customer: c },
-          badgeText: 'MEMBER',
-          badgeColor: '#059669',
-          icon: 'person-outline',
-          iconBg: '#D1FAE5',
-          iconColor: '#059669',
-        });
-      });
 
       setNotifications(items);
     } catch (e) {
@@ -126,7 +281,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [user]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -134,8 +289,12 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
   };
 
   const filtered = notifications.filter((item) => {
-    if (activeFilter === 'PAYMENTS') return item.type === 'PAYMENT_VERIFICATION';
-    if (activeFilter === 'DUES') return item.type === 'OVERDUE_DUE';
+    if (activeFilter === 'PAYMENTS') {
+      return item.type === 'PAYMENT_VERIFICATION' || item.type === 'PAYMENT_APPROVED' || item.type === 'RECEIPT_RECORDED';
+    }
+    if (activeFilter === 'DUES') {
+      return item.type === 'OVERDUE_DUE' || item.type === 'INSTALLMENT_DUE';
+    }
     return true;
   });
 

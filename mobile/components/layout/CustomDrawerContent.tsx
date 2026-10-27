@@ -96,6 +96,12 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
               isActive={currentRoute === 'CustomerSupport'}
               onPress={() => navigateTo('CustomerSupport')}
             />
+            <DrawerItem
+              title="Notifications"
+              icon="notifications-outline"
+              isActive={currentRoute === 'Notifications'}
+              onPress={() => navigateTo('Notifications')}
+            />
           </>
         ) : isStaff ? (
           <>

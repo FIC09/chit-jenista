@@ -54,6 +54,14 @@ const AdminDrawer = () => {
             <Ionicons name="menu" size={26} color={Colors.white} />
           </TouchableOpacity>
         ),
+        headerRight: () => (
+          <TouchableOpacity
+            style={{ paddingRight: 16, paddingLeft: 8 }}
+            onPress={() => navigation.navigate('Notifications')}
+          >
+            <Ionicons name="notifications-outline" size={22} color={Colors.white} />
+          </TouchableOpacity>
+        ),
       })}
     >
       <Drawer.Screen
@@ -129,6 +137,14 @@ const StaffDrawer = () => {
             <Ionicons name="menu" size={26} color={Colors.white} />
           </TouchableOpacity>
         ),
+        headerRight: () => (
+          <TouchableOpacity
+            style={{ paddingRight: 16, paddingLeft: 8 }}
+            onPress={() => navigation.navigate('Notifications')}
+          >
+            <Ionicons name="notifications-outline" size={22} color={Colors.white} />
+          </TouchableOpacity>
+        ),
       })}
     >
       <Drawer.Screen
@@ -184,6 +200,14 @@ const CustomerDrawer = () => {
             <Ionicons name="menu" size={26} color={Colors.white} />
           </TouchableOpacity>
         ),
+        headerRight: () => (
+          <TouchableOpacity
+            style={{ paddingRight: 16, paddingLeft: 8 }}
+            onPress={() => navigation.navigate('Notifications')}
+          >
+            <Ionicons name="notifications-outline" size={22} color={Colors.white} />
+          </TouchableOpacity>
+        ),
       })}
     >
       <Drawer.Screen
@@ -233,6 +257,11 @@ export const RootNavigator = () => {
               name="CustomerSchedule"
               component={CustomerScheduleScreen}
               options={{ headerShown: true, title: 'Installment Breakdown', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+            />
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{ headerShown: true, title: 'Notifications & Alerts', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
             />
           </>
         ) : user.role === 'STAFF' || user.role === 'COLLECTION_AGENT' ? (
