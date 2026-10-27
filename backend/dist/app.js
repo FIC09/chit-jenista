@@ -28,6 +28,7 @@ const document_routes_1 = __importDefault(require("./modules/documents/document.
 const notification_routes_1 = __importDefault(require("./modules/notifications/notification.routes"));
 const analytics_routes_1 = __importDefault(require("./modules/analytics/analytics.routes"));
 const reports_routes_1 = __importDefault(require("./modules/reports/reports.routes"));
+const payout_routes_1 = __importDefault(require("./modules/payouts/payout.routes"));
 const app = (0, express_1.default)();
 // Middleware
 app.use((0, helmet_1.default)());
@@ -63,6 +64,7 @@ app.use('/api/v1/documents', document_routes_1.default);
 app.use('/api/v1/notifications', notification_routes_1.default);
 app.use('/api/v1/analytics', analytics_routes_1.default);
 app.use('/api/v1/reports', reports_routes_1.default);
+app.use('/api/v1/payouts', payout_routes_1.default);
 // Fallback aliases for root paths
 app.use('/customers', customer_routes_1.default);
 app.use('/auth', auth_routes_1.default);

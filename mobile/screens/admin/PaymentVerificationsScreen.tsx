@@ -24,19 +24,8 @@ export const PaymentVerificationsScreen: React.FC = () => {
 
   const loadRequests = async () => {
     try {
-      const raw = await secureStorage.getItem('payment_requests');
-      if (raw) {
-        const parsed: PaymentRequest[] = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          // Filter out dummy static mock IDs like PAY-78201
-          const clean = parsed.filter(
-            (p) => !['PAY-78201', 'PAY-78202', 'PAY-78203', 'PAY-78190'].includes(p.id)
-          );
-          setRequests(clean);
-          return;
-        }
-      }
-      setRequests([]);
+      const data = await DataSyncManager.getPaymentRequests();
+      setRequests(data);
     } catch (e) {
       console.warn('Failed to load payment requests:', e);
       setRequests([]);
@@ -63,18 +52,19 @@ export const PaymentVerificationsScreen: React.FC = () => {
       {
         text: 'Approve & Credit Ledger',
         onPress: async () => {
-          const updated = requests.map((r) =>
-            r.id === id ? { ...r, status: 'APPROVED' as const, approvedAt: new Date().toISOString() } : r
+          const approvedAt = new Date().toISOString();
+          setRequests((prev) =>
+            prev.map((r) => (r.id === id ? { ...r, status: 'APPROVED' as const, approvedAt } : r))
           );
-          setRequests(updated);
-          await secureStorage.setItem('payment_requests', JSON.stringify(updated));
+          await DataSyncManager.updatePaymentRequestStatus(id, 'APPROVED', { approvedAt });
 
-          // Record in real ledger
+          // Record in real ledger with full customer ID, group ID, and ticket number
           await DataSyncManager.recordReceipt({
             receiptNo: `REC-ONLINE-${Date.now().toString().slice(-5)}`,
             customerId: target.customerId,
             customerName: target.customerName,
-            chitGroup: target.groupName || 'Chit Group',
+            chitGroup: target.groupId || target.groupName || 'Chit Group',
+            ticketNumber: target.ticketNumber,
             amount: Number(target.amount),
             paymentMode: target.paymentMode,
             referenceNo: target.referenceNumber,
@@ -94,9 +84,10 @@ export const PaymentVerificationsScreen: React.FC = () => {
         text: 'Reject',
         style: 'destructive',
         onPress: async () => {
-          const updated = requests.map((r) => (r.id === id ? { ...r, status: 'REJECTED' as const } : r));
-          setRequests(updated);
-          await secureStorage.setItem('payment_requests', JSON.stringify(updated));
+          setRequests((prev) =>
+            prev.map((r) => (r.id === id ? { ...r, status: 'REJECTED' as const } : r))
+          );
+          await DataSyncManager.updatePaymentRequestStatus(id, 'REJECTED');
         },
       },
     ]);

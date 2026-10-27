@@ -31,15 +31,48 @@ export const ReportsScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
   const fetchDefaulters = async () => {
     try {
       const custs = await DataSyncManager.getCustomers();
-      const defaulters: DefaulterRow[] = custs
-        .filter((c) => Number(c.pending || 0) > 0)
-        .map((c) => ({
-          customerId: c.id,
-          customerName: c.name,
-          mobile: c.phone || c.mobile || '—',
-          groupName: (c.chits && c.chits[0]?.groupName) || 'General Chit Fund',
-          amountDue: Number(c.pending || 0),
-        }));
+      const defaulters: DefaulterRow[] = [];
+
+      custs.forEach((c) => {
+        const totalPending = Number(c.pending || 0);
+        if (totalPending <= 0) return;
+
+        // If customer has chits, check which chits have pending dues
+        if (Array.isArray(c.chits) && c.chits.length > 0) {
+          const chitsWithDues = c.chits.filter((ch: any) => Number(ch.pending ?? ch.monthlyInstallment ?? 0) > 0 && ch.paymentStatus !== 'PAID');
+
+          if (chitsWithDues.length > 0) {
+            chitsWithDues.forEach((ch: any) => {
+              defaulters.push({
+                customerId: c.id,
+                customerName: c.name || c.fullName || 'Member',
+                mobile: c.phone || c.mobile || '—',
+                groupName: ch.groupName || ch.groupId || 'Chit Group',
+                amountDue: Number(ch.pending ?? ch.monthlyInstallment ?? totalPending),
+              });
+            });
+          } else {
+            // Customer overall has pending balance
+            const groupNames = c.chits.map((ch: any) => ch.groupName || ch.groupId).join(', ');
+            defaulters.push({
+              customerId: c.id,
+              customerName: c.name || c.fullName || 'Member',
+              mobile: c.phone || c.mobile || '—',
+              groupName: groupNames || 'Chit Group',
+              amountDue: totalPending,
+            });
+          }
+        } else {
+          defaulters.push({
+            customerId: c.id,
+            customerName: c.name || c.fullName || 'Member',
+            mobile: c.phone || c.mobile || '—',
+            groupName: 'General Chit Fund',
+            amountDue: totalPending,
+          });
+        }
+      });
+
       setNonPayers(defaulters);
     } catch (e) {
       console.warn('Error loading defaulters report:', e);

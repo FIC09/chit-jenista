@@ -18,8 +18,13 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
   const { user, logout } = useAuth();
   const currentRoute = props.state.routeNames[props.state.index];
 
-  const navigateTo = (screenName: string) => {
-    props.navigation.navigate(screenName);
+  const navigateTo = (screenName: string, params?: any) => {
+    props.navigation.closeDrawer();
+    if (params) {
+      props.navigation.navigate(screenName, { ...params, _t: Date.now() });
+    } else {
+      props.navigation.navigate(screenName);
+    }
   };
 
   const isStaff = user?.role === 'STAFF' || user?.role === 'COLLECTION_AGENT';
@@ -55,38 +60,72 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
         </View>
       </View>
 
-      {/* Navigation List Items */}
+        {/* Navigation List Items */}
       <ScrollView style={styles.menuContainer} showsVerticalScrollIndicator={false}>
         <DrawerItem
           title="Home"
           icon="home-outline"
           isActive={currentRoute === 'AdminDashboard' || currentRoute === 'StaffDashboard' || currentRoute === 'CustomerHome'}
-          onPress={() => navigateTo(isCustomer ? 'CustomerHome' : isStaff ? 'StaffDashboard' : 'AdminDashboard')}
+          onPress={() => navigateTo(isCustomer ? 'CustomerHome' : isStaff ? 'StaffDashboard' : 'AdminDashboard', isCustomer ? { action: 'HOME' } : undefined)}
         />
 
-        <DrawerItem
-          title="Members"
-          icon="people-outline"
-          isActive={currentRoute === 'CustomerList'}
-          onPress={() => navigateTo('CustomerList')}
-        />
-
-        <DrawerItem
-          title="Groups"
-          icon="layers-outline"
-          isActive={currentRoute === 'ChitGroupList'}
-          onPress={() => navigateTo('ChitGroupList')}
-        />
-
-        <DrawerItem
-          title="Payments"
-          icon="card-outline"
-          isActive={currentRoute === 'Ledger'}
-          onPress={() => navigateTo('Ledger')}
-        />
-
-        {!isCustomer && (
+        {isCustomer ? (
           <>
+            <DrawerItem
+              title="My Chit Portfolio"
+              icon="layers-outline"
+              isActive={currentRoute === 'CustomerHome'}
+              onPress={() => navigateTo('CustomerHome', { action: 'PORTFOLIO' })}
+            />
+            <DrawerItem
+              title="Official Bank & UPI"
+              icon="business-outline"
+              isActive={false}
+              onPress={() => navigateTo('CustomerHome', { action: 'BANK_DETAILS' })}
+            />
+            <DrawerItem
+              title="Payment History"
+              icon="receipt-outline"
+              isActive={false}
+              onPress={() => navigateTo('CustomerHome', { action: 'STATEMENTS' })}
+            />
+            <View style={styles.menuDivider} />
+            <DrawerItem
+              title="Settings & Policies"
+              icon="settings-outline"
+              isActive={currentRoute === 'CustomerSettings'}
+              onPress={() => navigateTo('CustomerSettings')}
+            />
+            <DrawerItem
+              title="Help & Support"
+              icon="headset-outline"
+              isActive={false}
+              onPress={() => navigateTo('CustomerHome', { action: 'SUPPORT' })}
+            />
+          </>
+        ) : (
+          <>
+            <DrawerItem
+              title="Members"
+              icon="people-outline"
+              isActive={currentRoute === 'CustomerList'}
+              onPress={() => navigateTo('CustomerList')}
+            />
+
+            <DrawerItem
+              title="Groups"
+              icon="layers-outline"
+              isActive={currentRoute === 'ChitGroupList'}
+              onPress={() => navigateTo('ChitGroupList')}
+            />
+
+            <DrawerItem
+              title="Payments"
+              icon="card-outline"
+              isActive={currentRoute === 'Ledger'}
+              onPress={() => navigateTo('Ledger')}
+            />
+
             <View style={styles.menuDivider} />
 
             <DrawerItem
@@ -123,24 +162,24 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
               isActive={currentRoute === 'Notifications'}
               onPress={() => navigateTo('Notifications')}
             />
+
+            <View style={styles.menuDivider} />
+
+            <DrawerItem
+              title="Settings"
+              icon="settings-outline"
+              isActive={currentRoute === 'Settings'}
+              onPress={() => navigateTo('Settings')}
+            />
+
+            <DrawerItem
+              title="Help & Support"
+              icon="help-circle-outline"
+              isActive={false}
+              onPress={() => navigateTo('Settings')}
+            />
           </>
         )}
-
-        <View style={styles.menuDivider} />
-
-        <DrawerItem
-          title="Settings"
-          icon="settings-outline"
-          isActive={currentRoute === 'Settings'}
-          onPress={() => navigateTo('Settings')}
-        />
-
-        <DrawerItem
-          title="Help & Support"
-          icon="help-circle-outline"
-          isActive={false}
-          onPress={() => navigateTo('Settings')}
-        />
       </ScrollView>
 
       {/* Footer Sign Out */}

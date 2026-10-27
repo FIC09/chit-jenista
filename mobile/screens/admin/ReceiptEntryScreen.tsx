@@ -34,6 +34,7 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
   const [customerId, setCustomerId] = useState(preId || '');
   const [mobileNumber, setMobileNumber] = useState(preMobile || '');
   const [chitGroup, setChitGroup] = useState(route.params?.chitGroup || '');
+  const [ticketNumber, setTicketNumber] = useState(route.params?.ticketNumber || '');
   const [amount, setAmount] = useState(preAmount ? String(preAmount) : '');
   const [paymentMode, setPaymentMode] = useState<'UPI' | 'CASH' | 'BANK_TRANSFER'>('UPI');
   const [referenceNo, setReferenceNo] = useState('');
@@ -96,6 +97,7 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
     if (Array.isArray(cust.chits) && cust.chits.length > 0) {
       const activeChit = cust.chits[0];
       setChitGroup(activeChit.groupName || activeChit.groupId || chitGroup);
+      setTicketNumber(activeChit.ticketNumber ? String(activeChit.ticketNumber) : '');
       if (cust.pending && Number(cust.pending) > 0) {
         setAmount(String(cust.pending));
       } else if (activeChit.monthlyInstallment) {
@@ -171,6 +173,7 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
         customerId: customerId || 'CUST',
         customerName: customerName.trim(),
         chitGroup,
+        ticketNumber: ticketNumber || undefined,
         amount: Number(amount),
         paymentMode,
         referenceNo: referenceNo.trim(),

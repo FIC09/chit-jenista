@@ -24,6 +24,7 @@ import documentRoutes from './modules/documents/document.routes';
 import notificationRoutes from './modules/notifications/notification.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
 import reportsRoutes from './modules/reports/reports.routes';
+import payoutRoutes from './modules/payouts/payout.routes';
 
 const app = express();
 
@@ -64,6 +65,7 @@ app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/reports', reportsRoutes);
+app.use('/api/v1/payouts', payoutRoutes);
 
 // Fallback aliases for root paths
 app.use('/customers', customerRoutes);

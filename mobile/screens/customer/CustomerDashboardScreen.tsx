@@ -33,7 +33,10 @@ import {
 } from '../../utils/chitCalculations';
 import { buildCustomerChitSchedule } from '../../utils/customerChitSchedule';
 
-export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }> = ({
+  navigation,
+  route,
+}) => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'myChits' | 'regularPlan' | 'fixedPlan' | 'auctionPlan'>('myChits');
   const [customerRecord, setCustomerRecord] = useState<any>(null);
@@ -71,6 +74,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
   const [statementSearch, setStatementSearch] = useState('');
 
   const [showQrModal, setShowQrModal] = useState<any | null>(null);
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Scheme Schedules selected category state
@@ -78,15 +82,38 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
   const [selectedFixedCat, setSelectedFixedCat] = useState<number>(100000);
   const [selectedAuctionCat, setSelectedAuctionCat] = useState<number>(100000);
 
+  // Handle incoming sidebar action route params
+  useEffect(() => {
+    if (route?.params?.action) {
+      const act = route.params.action;
+      if (act === 'HOME' || act === 'PORTFOLIO') {
+        setActiveTab('myChits');
+      } else if (act === 'BANK_DETAILS') {
+        const fallbackBank = companyBank || (allCompanyBanks && allCompanyBanks[0]) || {
+          accountHolderName: 'Jenista Chit Funds Pvt Ltd',
+          upiId: 'jenistachits@hdfcbank',
+          bankName: 'HDFC Bank',
+          accountNumber: '50200012345678',
+          ifscCode: 'HDFC0001234',
+        };
+        setShowQrModal(fallbackBank);
+      } else if (act === 'STATEMENTS') {
+        setShowStatementsModal(true);
+      } else if (act === 'SUPPORT') {
+        setShowSupportModal(true);
+      }
+    }
+  }, [route?.params]);
+
   const fetchCustomerProfile = async () => {
     try {
       if (!user) return;
-      const [allCustomers, banks, ledgerRaw, reqsRaw, wReqsRaw] = await Promise.all([
+      const [allCustomers, banks, ledgerRaw, reqsList, wReqsList] = await Promise.all([
         DataSyncManager.getCustomers(),
         DataSyncManager.getBankAccounts(),
         secureStorage.getItem('synced_ledger'),
-        secureStorage.getItem('payment_requests'),
-        secureStorage.getItem('withdrawal_requests'),
+        DataSyncManager.getPaymentRequests(),
+        DataSyncManager.getWithdrawalRequests(),
       ]);
 
       if (banks && banks.length > 0) {
@@ -124,35 +151,20 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
       setTransactions(userTrx);
 
       // Parse Payment Requests
-      let userReqs: any[] = [];
-      if (reqsRaw) {
-        try {
-          const parsedReqs = JSON.parse(reqsRaw);
-          if (Array.isArray(parsedReqs)) {
-            userReqs = parsedReqs.filter(
-              (r: any) =>
-                r.customerId === user.id ||
-                (user.phone && r.mobile?.replace(/\D/g, '') === cleanUserPhone)
-            );
-          }
-        } catch {}
-      }
+      const userReqs = (reqsList || []).filter(
+        (r: any) =>
+          r.customerId === user.id ||
+          (user.phone && r.mobile?.replace(/\D/g, '') === cleanUserPhone) ||
+          (user.phone && r.customerMobile?.replace(/\D/g, '') === cleanUserPhone)
+      );
       setPendingRequests(userReqs);
 
       // Parse Withdrawal Requests
-      let userWReqs: any[] = [];
-      if (wReqsRaw) {
-        try {
-          const parsedWReqs = JSON.parse(wReqsRaw);
-          if (Array.isArray(parsedWReqs)) {
-            userWReqs = parsedWReqs.filter(
-              (w: any) =>
-                w.customerId === user.id ||
-                (user.phone && w.mobile?.replace(/\D/g, '') === cleanUserPhone)
-            );
-          }
-        } catch {}
-      }
+      const userWReqs = (wReqsList || []).filter(
+        (w: any) =>
+          w.customerId === user.id ||
+          (user.phone && w.mobile?.replace(/\D/g, '') === cleanUserPhone)
+      );
       setPendingWithdrawals(userWReqs);
 
       if (found) {
@@ -253,12 +265,8 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
           : `Submitted from mobile app via ${payMode}`,
       };
 
-      const existingRaw = await secureStorage.getItem('payment_requests');
-      const existing = existingRaw ? JSON.parse(existingRaw) : [];
-      const updated = [newReq, ...existing.filter((r: any) => r.id !== newReq.id)];
-      await secureStorage.setItem('payment_requests', JSON.stringify(updated));
-
-      setPendingRequests((prev) => [newReq, ...prev.filter((r) => r.id !== newReq.id)]);
+      const savedReq = await DataSyncManager.savePaymentRequest(newReq);
+      setPendingRequests((prev) => [savedReq, ...prev.filter((r) => r.id !== savedReq.id)]);
       setPaymentModalChit(null);
       setPayScreenshot(null);
       Alert.alert(
@@ -301,7 +309,18 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
     setWithdrawSubmitting(true);
     try {
       const chitVal = withdrawModalChit.chitValue || withdrawModalChit.amount || 100000;
-      const prizeAmount = chitVal * 0.95;
+      const isAuction = String(withdrawModalChit.scheme || '').toLowerCase().includes('auc');
+      const isFixed = String(withdrawModalChit.scheme || '').toLowerCase().includes('fix');
+      
+      let prizeAmount = chitVal * 0.95;
+      if (isAuction) {
+        const scheduleSum = buildCustomerChitSchedule({
+          customer: customerRecord || user,
+          chit: withdrawModalChit,
+          ledgerTransactions: transactions,
+        });
+        prizeAmount = scheduleSum.currentEligiblePrizeAmount || chitVal * 0.85;
+      }
 
       const newWReq = {
         id: `WDR-${Date.now().toString().slice(-6)}`,
@@ -312,7 +331,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
         groupName: withdrawModalChit.groupName || withdrawModalChit.groupId,
         ticketNumber: withdrawModalChit.ticketNumber || '',
         chitValue: chitVal,
-        eligibleAmount: prizeAmount,
+        eligibleAmount: Math.round(prizeAmount),
         payoutMethod: withdrawPayoutMethod,
         payoutDetails: {
           bankName: withdrawPayoutMethod === 'Bank Transfer' ? bankName.trim() : undefined,
@@ -325,12 +344,8 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
         status: 'PENDING_ADMIN_DISBURSAL',
       };
 
-      const existingRaw = await secureStorage.getItem('withdrawal_requests');
-      const existing = existingRaw ? JSON.parse(existingRaw) : [];
-      const updated = [newWReq, ...existing.filter((w: any) => w.id !== newWReq.id)];
-      await secureStorage.setItem('withdrawal_requests', JSON.stringify(updated));
-
-      setPendingWithdrawals((prev) => [newWReq, ...prev.filter((w) => w.id !== newWReq.id)]);
+      const savedWReq = await DataSyncManager.saveWithdrawalRequest(newWReq);
+      setPendingWithdrawals((prev) => [savedWReq, ...prev.filter((w) => w.id !== savedWReq.id)]);
       setWithdrawModalChit(null);
       Alert.alert(
         'Claim Submitted',
@@ -365,49 +380,147 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
     >
       <StatusBar barStyle="light-content" />
 
-      {/* 1. Account Hero Card */}
+      {/* 1. Modern Redesigned Hero Section */}
       <View style={styles.heroCard}>
+        {/* Top Header Row with Menu trigger & Profile */}
         <View style={styles.heroTop}>
+          <TouchableOpacity
+            style={styles.hamburgerBtn}
+            onPress={() => navigation.openDrawer?.()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="menu" size={24} color={Colors.white} />
+          </TouchableOpacity>
+
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>
               {(customerRecord?.name || user?.name || 'C').charAt(0).toUpperCase()}
             </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.clientName}>{customerRecord?.name || user?.name || 'Customer'}</Text>
+            <Text style={styles.greetingSmall}>Welcome back,</Text>
+            <Text style={styles.clientName} numberOfLines={1}>{customerRecord?.name || user?.name || 'Valued Member'}</Text>
             <Text style={styles.clientMeta}>
-              ID: {customerRecord?.id || user?.id} • {customerRecord?.phone || user?.phone || 'Member'}
+              ID: {customerRecord?.id || user?.id} • {customerRecord?.phone || user?.phone || 'Customer'}
             </Text>
           </View>
           <TouchableOpacity
             style={styles.referralBtn}
             onPress={() => copyToClipboard(`https://jenistachits.com/register?ref=${user?.id}`, 'ref-link')}
           >
-            <Ionicons name="copy-outline" size={14} color={Colors.white} />
+            <Ionicons name="share-social-outline" size={14} color={Colors.gold.primary} />
             <Text style={styles.referralBtnText}>Refer</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutPill} onPress={logout}>
-            <Ionicons name="log-out-outline" size={16} color={Colors.danger} />
+        </View>
+
+        {/* Hero Balance Banner */}
+        <View style={styles.heroBalanceBox}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroBalanceLabel}>TOTAL CHIT SAVINGS INVESTED</Text>
+            <Text style={styles.heroBalanceAmount}>{formatCurrency(totalInvested)}</Text>
+            <View style={styles.heroStatusPill}>
+              <View style={[styles.statusDot, { backgroundColor: pendingDues > 0 ? '#f59e0b' : '#10b981' }]} />
+              <Text style={styles.heroStatusText}>
+                {pendingDues > 0 ? `${formatCurrency(pendingDues)} Due this month` : 'All Current Dues Settle'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.walletIconBubble}>
+            <Ionicons name="wallet-outline" size={28} color={Colors.gold.primary} />
+          </View>
+        </View>
+
+        {/* Quick Action Shortcuts (UX Enhancement) */}
+        <View style={styles.quickActionsRow}>
+          <TouchableOpacity
+            style={styles.quickActionItem}
+            activeOpacity={0.8}
+            onPress={() => {
+              if (chits.length > 0) {
+                handleOpenPay(chits[0], false, pendingDues > 0 ? pendingDues : chits[0]?.monthlyInstallment);
+              } else {
+                Alert.alert('No Active Chit', 'You currently do not have any enrolled chit schemes.');
+              }
+            }}
+          >
+            <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(245, 158, 11, 0.2)' }]}>
+              <Ionicons name="flash-outline" size={18} color={Colors.gold.primary} />
+            </View>
+            <Text style={styles.actionItemText}>Quick Pay</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickActionItem}
+            activeOpacity={0.8}
+            onPress={() => {
+              if (chits.length > 0) {
+                navigation.navigate('CustomerSchedule', {
+                  customer: customerRecord || user,
+                  chit: chits[0],
+                });
+              } else {
+                Alert.alert('Notice', 'No active chit schedule found.');
+              }
+            }}
+          >
+            <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
+              <Ionicons name="calendar-outline" size={18} color="#60a5fa" />
+            </View>
+            <Text style={styles.actionItemText}>Due Chart</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickActionItem}
+            activeOpacity={0.8}
+            onPress={() => setShowQrModal(companyBank || allCompanyBanks[0])}
+          >
+            <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+              <Ionicons name="qr-code-outline" size={18} color="#34d399" />
+            </View>
+            <Text style={styles.actionItemText}>Bank QR</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickActionItem}
+            activeOpacity={0.8}
+            onPress={() => setShowStatementsModal(true)}
+          >
+            <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(168, 85, 247, 0.2)' }]}>
+              <Ionicons name="receipt-outline" size={18} color="#c084fc" />
+            </View>
+            <Text style={styles.actionItemText}>Receipts</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* 4-Stat Metric Cards Grid (Same as Web App) */}
+      {/* 4-Stat Metric Cards Grid */}
       <View style={styles.metricsGrid}>
         <View style={styles.metricBox}>
-          <Text style={styles.metricLabel}>ACTIVE CHITS</Text>
+          <View style={styles.metricIconHeader}>
+            <Ionicons name="layers-outline" size={15} color={Colors.primary[600]} />
+            <Text style={styles.metricLabel}>ACTIVE CHITS</Text>
+          </View>
           <Text style={styles.metricVal}>{chits.length}</Text>
         </View>
         <View style={styles.metricBox}>
-          <Text style={styles.metricLabel}>TOTAL INVESTED</Text>
+          <View style={styles.metricIconHeader}>
+            <Ionicons name="trending-up-outline" size={15} color="#059669" />
+            <Text style={styles.metricLabel}>INVESTED</Text>
+          </View>
           <Text style={[styles.metricVal, styles.metricValInvested]}>{formatCurrency(totalInvested)}</Text>
         </View>
         <View style={styles.metricBox}>
-          <Text style={styles.metricLabel}>TOTAL WITHDRAWN</Text>
+          <View style={styles.metricIconHeader}>
+            <Ionicons name="trophy-outline" size={15} color={Colors.gold.dark} />
+            <Text style={styles.metricLabel}>WITHDRAWN</Text>
+          </View>
           <Text style={[styles.metricVal, styles.metricValGold]}>{formatCurrency(totalWithdrawnAmount)}</Text>
         </View>
         <View style={styles.metricBox}>
-          <Text style={styles.metricLabel}>NEXT DUE</Text>
+          <View style={styles.metricIconHeader}>
+            <Ionicons name="time-outline" size={15} color={pendingDues > 0 ? '#dc2626' : '#059669'} />
+            <Text style={styles.metricLabel}>NEXT DUE</Text>
+          </View>
           <Text style={[styles.metricVal, pendingDues > 0 ? { color: '#dc2626' } : { color: '#059669' }]}>
             {formatCurrency(pendingDues > 0 ? pendingDues : chits[0]?.monthlyInstallment || 0)}
           </Text>
@@ -538,7 +651,6 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
             ) : (
               chits.map((item, idx) => {
                 const chitVal = item.chitValue || 100000;
-                const prizeVal = chitVal * 0.95;
                 const wReq = pendingWithdrawals.find((w) => w.groupId === item.groupId);
                 const isDisbursed = item.isWithdrawn || (wReq && wReq.status === 'DISBURSED');
                 const isPending = wReq && wReq.status === 'PENDING_ADMIN_DISBURSAL';
@@ -548,13 +660,26 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
                   chit: item,
                   ledgerTransactions: transactions,
                 });
+
+                // Dynamically obtain eligible prize based on scheme (auction discount vs fixed)
+                const prizeVal = scheduleSummary.currentEligiblePrizeAmount || (item.scheme === 'Auction' ? chitVal * 0.85 : chitVal * 0.95);
+                const prizeLabel = item.scheme === 'Auction' ? 'EST. PRIZE (AUCTION)' : 'NET PRIZE (95%)';
+
                 const firstUnpaidRow = scheduleSummary.schedule.find((r) => r.status !== 'PAID');
+                const now = new Date();
+                const currentMonthDueRow = scheduleSummary.schedule.find((r) => {
+                  const d = new Date(r.dueDateIso);
+                  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+                });
+
+                // Current month is considered paid if the row for this month is marked PAID, or if all completed
                 const isCurrentMonthPaid =
                   !firstUnpaidRow ||
-                  (firstUnpaidRow.monthNumber > 1 && item.paymentStatus === 'PAID') ||
-                  (item.paymentStatus === 'PAID' && scheduleSummary.remainingBalanceDue === 0);
+                  (currentMonthDueRow && currentMonthDueRow.status === 'PAID') ||
+                  (scheduleSummary.remainingBalanceDue === 0 && scheduleSummary.totalPaidAmount > 0);
+
                 const targetRow = firstUnpaidRow || scheduleSummary.schedule[scheduleSummary.schedule.length - 1];
-                const nextDueStr = targetRow ? targetRow.dueDate : (item as any)?.dueDate || '15 Oct, 2026';
+                const nextDueStr = targetRow ? targetRow.dueDate : (item as any)?.dueDate || '15th of month';
                 const amountDueForChit = targetRow ? targetRow.revisedDue : item.monthlyInstallment || 5000;
 
                 return (
@@ -581,6 +706,31 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
                       </View>
                     </View>
 
+                    {/* Progress Bar & Cycle Status */}
+                    <View style={styles.chitProgressBox}>
+                      <View style={styles.progressRow}>
+                        <Text style={styles.progressLabel}>
+                          Installments: {scheduleSummary.completedMonthsCount} of {scheduleSummary.totalDurationMonths} Months Paid
+                        </Text>
+                        <Text style={styles.dueDateBadge}>
+                          Due: {nextDueStr}
+                        </Text>
+                      </View>
+                      <View style={styles.progressTrack}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {
+                              width: `${Math.min(
+                                100,
+                                Math.round((scheduleSummary.completedMonthsCount / scheduleSummary.totalDurationMonths) * 100)
+                              )}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                    </View>
+
                     <View style={styles.cardDivider} />
 
                     {/* Stats Row */}
@@ -596,7 +746,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
                         <Text style={styles.mainVal}>{formatCurrency(amountDueForChit)}</Text>
                       </View>
                       <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={styles.subLabel}>NET PRIZE (95%)</Text>
+                        <Text style={styles.subLabel}>{prizeLabel}</Text>
                         <Text style={[styles.mainVal, { color: Colors.gold.dark }]}>{formatCurrency(prizeVal)}</Text>
                       </View>
                     </View>
@@ -1071,9 +1221,21 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
               <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
                 {/* Prize Breakdown */}
                 <View style={styles.prizeBanner}>
-                  <Text style={styles.prizeBannerLabel}>Net Payout (95% after 5% foreman fee):</Text>
+                  <Text style={styles.prizeBannerLabel}>
+                    {String(withdrawModalChit.scheme || '').toLowerCase().includes('auc')
+                      ? 'Current Cycle Eligible Auction Prize:'
+                      : 'Net Payout (95% after 5% foreman fee):'}
+                  </Text>
                   <Text style={styles.prizeBannerAmount}>
-                    {formatCurrency((withdrawModalChit.chitValue || 100000) * 0.95)}
+                    {formatCurrency(
+                      String(withdrawModalChit.scheme || '').toLowerCase().includes('auc')
+                        ? (buildCustomerChitSchedule({
+                            customer: customerRecord || user,
+                            chit: withdrawModalChit,
+                            ledgerTransactions: transactions,
+                          }).currentEligiblePrizeAmount || (withdrawModalChit.chitValue || 100000) * 0.85)
+                        : (withdrawModalChit.chitValue || 100000) * 0.95
+                    )}
                   </Text>
                 </View>
 
@@ -1264,6 +1426,71 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any }> = ({ navigat
         </Modal>
       )}
 
+      {/* 7. MODAL: HELP & SUPPORT */}
+      {showSupportModal && (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setShowSupportModal(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { padding: 22 }]}>
+              <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="headset-outline" size={22} color={Colors.gold.dark} />
+                  <Text style={styles.modalTitle}>Member Support</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowSupportModal(false)}>
+                  <Ionicons name="close" size={22} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={{ fontSize: 13, color: Colors.textSecondary, marginBottom: 16, lineHeight: 18 }}>
+                Jenista Chit Funds Customer Care & Branch Support Team is available Monday through Saturday (9:00 AM – 6:30 PM).
+              </Text>
+
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 10 }}
+                onPress={() => Linking.openURL('tel:+919876543210').catch(() => {})}
+              >
+                <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: '#e0f2fe', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="call" size={18} color="#0284c7" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 11, color: Colors.textMuted, fontWeight: '700' }}>CALL HELPLINE</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: Colors.navy.primary, marginTop: 2 }}>+91 98765 43210</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={Colors.border} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 10 }}
+                onPress={() => Linking.openURL('https://wa.me/919876543210?text=Hello%20Jenista%20Chits,%20I%20need%20assistance.').catch(() => {})}
+              >
+                <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="logo-whatsapp" size={18} color="#16a34a" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 11, color: Colors.textMuted, fontWeight: '700' }}>WHATSAPP ASSISTANCE</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: '#15803d', marginTop: 2 }}>Chat with Branch Executive</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={Colors.border} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0' }}
+                onPress={() => Linking.openURL('mailto:support@jenistachits.com').catch(() => {})}
+              >
+                <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: '#fef3c7', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="mail" size={18} color="#d97706" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 11, color: Colors.textMuted, fontWeight: '700' }}>OFFICIAL EMAIL</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: Colors.text, marginTop: 2 }}>support@jenistachits.com</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={Colors.border} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       <View style={{ height: 40 }} />
     </ScrollView>
   );
@@ -1290,55 +1517,131 @@ const styles = StyleSheet.create({
   heroTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+  },
+  hamburgerBtn: {
+    padding: 6,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  greetingSmall: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.65)',
+    fontWeight: '500',
   },
   avatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     backgroundColor: Colors.gold.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
     color: '#0B1A30',
   },
   clientName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     color: Colors.white,
   },
   clientMeta: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.neutral[400],
-    marginTop: 2,
+    marginTop: 1,
   },
-  logoutPill: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  heroBalanceBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginTop: 18,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  heroDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginVertical: 16,
+  heroBalanceLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  heroBalanceAmount: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: Colors.gold.primary,
+    marginTop: 4,
+  },
+  heroStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  heroStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  walletIconBubble: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  quickActionItem: {
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  actionIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionItemText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.85)',
+  },
+  metricIconHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   referralBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   referralBtnText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: Colors.gold.primary,
   },
@@ -1516,6 +1819,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     marginTop: 2,
+  },
+  chitProgressBox: {
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  progressLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  dueDateBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0284c7',
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#f1f5f9',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.primary[600],
+    borderRadius: 3,
   },
   activePlanBadge: {
     backgroundColor: '#dcfce7',

@@ -92,6 +92,20 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
               const key = `${custId}-${ticket}`;
 
               if (!seenKey.has(key)) {
+                const chitPendingVal = ch.pending !== undefined ? Number(ch.pending) : undefined;
+                const chitPaidVal = Number(ch.totalPaid ?? ch.paidAmount ?? 0);
+                const isPaidStatus =
+                  ch.paymentStatus === 'PAID' ||
+                  (chitPendingVal !== undefined && chitPendingVal === 0 && chitPaidVal > 0);
+                
+                const finalPending = isPaidStatus
+                  ? 0
+                  : chitPendingVal !== undefined
+                  ? chitPendingVal
+                  : (c.chits && c.chits.length === 1 && Number(c.pending || 0) > 0)
+                  ? Number(c.pending)
+                  : Number(ch.monthlyInstallment || monthlyInstallment);
+
                 seenKey.add(key);
                 matched.push({
                   customerId: custId,
@@ -103,9 +117,9 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
                   duration: Number(ch.duration || ch.months || group?.duration || 20),
                   chitValue: Number(ch.chitValue || chitValue),
                   monthlyInstallment: Number(ch.monthlyInstallment || monthlyInstallment),
-                  paymentStatus: ch.paymentStatus === 'PAID' ? 'PAID' : (Number(ch.pending ?? c.pending ?? 0) === 0 && Number(ch.totalPaid || 0) > 0 ? 'PAID' : 'DUE'),
-                  totalPaid: Number(ch.totalPaid ?? ch.paidAmount ?? c.totalPaid ?? 0),
-                  pending: ch.paymentStatus === 'PAID' ? 0 : Number(ch.pending !== undefined ? ch.pending : (Number(c.pending || 0) > 0 ? c.pending : ch.monthlyInstallment || monthlyInstallment)),
+                  paymentStatus: isPaidStatus ? 'PAID' : 'DUE',
+                  totalPaid: Number(ch.totalPaid ?? ch.paidAmount ?? (c.chits && c.chits.length === 1 ? c.totalPaid : 0) ?? 0),
+                  pending: finalPending,
                   isWithdrawn: ch.isWithdrawn || false,
                   withdrawnAmount: ch.withdrawnAmount,
                   fullCustomer: c,

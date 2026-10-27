@@ -152,27 +152,38 @@ const StaffDrawer = () => {
   );
 };
 
-// Customer Stack
-const CustomerStack = () => {
+// Customer Sidebar Drawer containing CustomDrawerContent
+const CustomerDrawer = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
+    <Drawer.Navigator
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      screenOptions={({ navigation }) => ({
+        headerShown: true,
         headerStyle: { backgroundColor: Colors.navy.primary },
         headerTintColor: Colors.white,
-        headerTitleStyle: { fontWeight: '800' },
-      }}
+        headerTitleStyle: { fontWeight: '800', fontSize: 17 },
+        drawerType: 'front',
+        headerLeft: () => (
+          <TouchableOpacity
+            style={{ paddingLeft: 16, paddingRight: 8 }}
+            onPress={() => navigation.openDrawer()}
+          >
+            <Ionicons name="menu" size={26} color={Colors.white} />
+          </TouchableOpacity>
+        ),
+      })}
     >
-      <Stack.Screen
+      <Drawer.Screen
         name="CustomerHome"
         component={CustomerDashboardScreen}
-        options={{ title: 'My Account' }}
+        options={{ title: 'Jenista Chit Funds' }}
       />
-      <Stack.Screen
-        name="CustomerSchedule"
-        component={CustomerScheduleScreen}
-        options={{ title: 'Chit Installment Schedule' }}
+      <Drawer.Screen
+        name="CustomerSettings"
+        component={SettingsScreen}
+        options={{ title: 'Settings & Profile' }}
       />
-    </Stack.Navigator>
+    </Drawer.Navigator>
   );
 };
 
@@ -193,7 +204,14 @@ export const RootNavigator = () => {
         {!isAuthenticated || !user ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : user.role === 'CUSTOMER' ? (
-          <Stack.Screen name="CustomerRoot" component={CustomerStack} />
+          <>
+            <Stack.Screen name="CustomerRoot" component={CustomerDrawer} />
+            <Stack.Screen
+              name="CustomerSchedule"
+              component={CustomerScheduleScreen}
+              options={{ headerShown: true, title: 'Installment Breakdown', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+            />
+          </>
         ) : user.role === 'STAFF' || user.role === 'COLLECTION_AGENT' ? (
           <>
             <Stack.Screen name="StaffRoot" component={StaffDrawer} />

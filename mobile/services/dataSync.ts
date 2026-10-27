@@ -570,6 +570,7 @@ export const DataSyncManager = {
     chitGroup: string;
     amount: number;
     paymentMode: string;
+    ticketNumber?: string;
     referenceNo?: string;
     executive?: string;
   }): Promise<void> {
@@ -588,12 +589,16 @@ export const DataSyncManager = {
 
     const matchedCust = customers.find((c) => {
       const cPhone = (c.phone || c.mobile || '').replace(/\D/g, '');
+      const custCode = String((c as any).customerCode || '').toLowerCase();
+      const targetId = String(receiptData.customerId || '').toLowerCase();
+
       return (
         c.id === receiptData.customerId ||
         c.mongoId === receiptData.customerId ||
-        (cleanReceiptPhone && cPhone && cleanReceiptPhone === cPhone) ||
-        (c.name && receiptData.customerName && c.name.toLowerCase() === receiptData.customerName.toLowerCase()) ||
-        (c.fullName && receiptData.customerName && c.fullName.toLowerCase() === receiptData.customerName.toLowerCase())
+        (custCode && custCode === targetId) ||
+        (cleanReceiptPhone && cleanReceiptPhone.length >= 7 && cPhone.includes(cleanReceiptPhone)) ||
+        (c.name && receiptData.customerName && c.name.trim().toLowerCase() === receiptData.customerName.trim().toLowerCase()) ||
+        (c.fullName && receiptData.customerName && c.fullName.trim().toLowerCase() === receiptData.customerName.trim().toLowerCase())
       );
     });
 
@@ -646,18 +651,24 @@ export const DataSyncManager = {
 
     const updatedCusts = customers.map((c) => {
       const cPhone = (c.phone || c.mobile || '').replace(/\D/g, '');
+      const custCode = String((c as any).customerCode || '').toLowerCase();
+      const targetId = String(receiptData.customerId || '').toLowerCase();
+
       const isTarget =
         c.id === receiptData.customerId ||
         c.mongoId === receiptData.customerId ||
-        (cleanReceiptPhone && cPhone && cleanReceiptPhone === cPhone) ||
-        (c.name && receiptData.customerName && c.name.toLowerCase() === receiptData.customerName.toLowerCase()) ||
-        (c.fullName && receiptData.customerName && c.fullName.toLowerCase() === receiptData.customerName.toLowerCase());
+        (matchedCust && (c.id === matchedCust.id || c.mongoId === matchedCust.mongoId)) ||
+        (custCode && custCode === targetId) ||
+        (cleanReceiptPhone && cleanReceiptPhone.length >= 7 && cPhone.includes(cleanReceiptPhone)) ||
+        (c.name && receiptData.customerName && c.name.trim().toLowerCase() === receiptData.customerName.trim().toLowerCase()) ||
+        (c.fullName && receiptData.customerName && c.fullName.trim().toLowerCase() === receiptData.customerName.trim().toLowerCase());
 
       if (isTarget) {
-        targetMongoId = c.mongoId || c.id;
+        targetMongoId = c.mongoId || (c.id && c.id.length === 24 ? c.id : null);
         const newPaid = Number(c.totalPaid || 0) + Number(receiptData.amount);
         const newPending = Math.max(0, Number(c.pending || 0) - Number(receiptData.amount));
 
+        let amountLeftToApply = Number(receiptData.amount);
         const updatedChits = Array.isArray(c.chits)
           ? c.chits.map((ch: any) => {
               const matchesGroup =
@@ -665,9 +676,16 @@ export const DataSyncManager = {
                 String(ch.groupId || '').toLowerCase() === receiptData.chitGroup.toLowerCase() ||
                 String(ch.groupName || '').toLowerCase() === receiptData.chitGroup.toLowerCase();
 
-              if (matchesGroup) {
-                const chPaid = Number(ch.paidAmount || ch.totalPaid || 0) + Number(receiptData.amount);
-                const chPending = Math.max(0, Number(ch.pending || ch.monthlyInstallment || 0) - Number(receiptData.amount));
+              const matchesTicket =
+                !receiptData.ticketNumber ||
+                String(ch.ticketNumber || '') === String(receiptData.ticketNumber);
+
+              if (matchesGroup && matchesTicket && amountLeftToApply > 0) {
+                const applied = amountLeftToApply;
+                amountLeftToApply = 0;
+                const chPaid = Number(ch.paidAmount || ch.totalPaid || 0) + applied;
+                const currentChPending = Number(ch.pending !== undefined ? ch.pending : (ch.monthlyInstallment || 0));
+                const chPending = Math.max(0, currentChPending - applied);
                 return {
                   ...ch,
                   paidAmount: chPaid,
@@ -729,5 +747,168 @@ export const DataSyncManager = {
 
   async saveBankAccounts(banks: any[]) {
     await secureStorage.setItem('company_banks', JSON.stringify(banks));
+  },
+
+  /**
+   * Payment Requests (Online verification) with MongoDB API sync and fallback cache
+   */
+  async getPaymentRequests(): Promise<any[]> {
+    let mongoReqs: any[] = [];
+    try {
+      const baseUrl = await getActiveBaseUrl();
+      const res = await fetch(`${baseUrl}/payments/requests`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && Array.isArray(json.data)) {
+          mongoReqs = json.data;
+        }
+      }
+    } catch (e) {
+      console.warn('Backend fetch payment requests failed, reading from storage:', e);
+    }
+
+    const localRaw = await secureStorage.getItem('payment_requests');
+    const localList: any[] = localRaw ? JSON.parse(localRaw) : [];
+
+    // Combine backend records and local records
+    const combinedMap = new Map<string, any>();
+    mongoReqs.forEach((m) => combinedMap.set(m.id, m));
+    localList.forEach((l) => {
+      if (!combinedMap.has(l.id)) {
+        combinedMap.set(l.id, l);
+      }
+    });
+
+    const merged = Array.from(combinedMap.values()).filter(
+      (p) => !['PAY-78201', 'PAY-78202', 'PAY-78203', 'PAY-78190'].includes(p.id)
+    );
+    await secureStorage.setItem('payment_requests', JSON.stringify(merged));
+    return merged;
+  },
+
+  async savePaymentRequest(requestData: any): Promise<any> {
+    const newReq = {
+      ...requestData,
+      id: requestData.id || `PAY-${Date.now().toString().slice(-6)}`,
+      status: requestData.status || 'PENDING',
+      requestedAt: requestData.requestedAt || new Date().toISOString(),
+    };
+
+    // Save locally first for instant offline responsiveness
+    const current = await this.getPaymentRequests();
+    const updated = [newReq, ...current.filter((r) => r.id !== newReq.id)];
+    await secureStorage.setItem('payment_requests', JSON.stringify(updated));
+
+    // Sync to backend MongoDB endpoint
+    try {
+      const baseUrl = await getActiveBaseUrl();
+      await fetch(`${baseUrl}/payments/requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newReq),
+      });
+    } catch (e) {
+      console.warn('Backend sync payment request error (persisted locally):', e);
+    }
+
+    return newReq;
+  },
+
+  async updatePaymentRequestStatus(id: string, status: 'APPROVED' | 'REJECTED', extraData: any = {}): Promise<void> {
+    const current = await this.getPaymentRequests();
+    const updated = current.map((r) =>
+      r.id === id ? { ...r, status, ...extraData } : r
+    );
+    await secureStorage.setItem('payment_requests', JSON.stringify(updated));
+
+    try {
+      const baseUrl = await getActiveBaseUrl();
+      await fetch(`${baseUrl}/payments/requests/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, ...extraData }),
+      });
+    } catch (e) {
+      console.warn('Backend sync payment request status update failed:', e);
+    }
+  },
+
+  /**
+   * Withdrawal Requests (Prize claims) with MongoDB API sync and fallback cache
+   */
+  async getWithdrawalRequests(): Promise<any[]> {
+    let mongoRequests: any[] = [];
+    try {
+      const baseUrl = await getActiveBaseUrl();
+      const res = await fetch(`${baseUrl}/payouts/requests`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && Array.isArray(json.data)) {
+          mongoRequests = json.data;
+        }
+      }
+    } catch (e) {
+      console.warn('Backend fetch withdrawal requests failed, reading from storage:', e);
+    }
+
+    const localRaw = await secureStorage.getItem('withdrawal_requests');
+    const localList: any[] = localRaw ? JSON.parse(localRaw) : [];
+
+    const combinedMap = new Map<string, any>();
+    mongoRequests.forEach((m) => combinedMap.set(m.id, m));
+    localList.forEach((l) => {
+      if (!combinedMap.has(l.id)) {
+        combinedMap.set(l.id, l);
+      }
+    });
+
+    const merged = Array.from(combinedMap.values());
+    await secureStorage.setItem('withdrawal_requests', JSON.stringify(merged));
+    return merged;
+  },
+
+  async saveWithdrawalRequest(requestData: any): Promise<any> {
+    const newReq = {
+      ...requestData,
+      id: requestData.id || `WDR-${Date.now().toString().slice(-6)}`,
+      status: requestData.status || 'PENDING_ADMIN_DISBURSAL',
+      requestedAt: requestData.requestedAt || new Date().toISOString(),
+    };
+
+    const current = await this.getWithdrawalRequests();
+    const updated = [newReq, ...current.filter((r) => r.id !== newReq.id)];
+    await secureStorage.setItem('withdrawal_requests', JSON.stringify(updated));
+
+    try {
+      const baseUrl = await getActiveBaseUrl();
+      await fetch(`${baseUrl}/payouts/requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newReq),
+      });
+    } catch (e) {
+      console.warn('Backend sync withdrawal request error (persisted locally):', e);
+    }
+
+    return newReq;
+  },
+
+  async updateWithdrawalRequestStatus(id: string, status: 'DISBURSED' | 'REJECTED', extraData: any = {}): Promise<void> {
+    const current = await this.getWithdrawalRequests();
+    const updated = current.map((r) =>
+      r.id === id ? { ...r, status, ...extraData } : r
+    );
+    await secureStorage.setItem('withdrawal_requests', JSON.stringify(updated));
+
+    try {
+      const baseUrl = await getActiveBaseUrl();
+      await fetch(`${baseUrl}/payouts/requests/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, ...extraData }),
+      });
+    } catch (e) {
+      console.warn('Backend sync withdrawal request status update failed:', e);
+    }
   },
 };
