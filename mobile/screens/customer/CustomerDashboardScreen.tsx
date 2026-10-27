@@ -15,6 +15,7 @@ import {
   Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../store/AuthContext';
@@ -55,7 +56,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
   const [paymentModalChit, setPaymentModalChit] = useState<any | null>(null);
   const [isAdvancePayment, setIsAdvancePayment] = useState(false);
   const [payAmount, setPayAmount] = useState<string>('');
-  const [payMode, setPayMode] = useState<'UPI' | 'Bank Transfer' | 'Cash'>('UPI');
+  const [payMode, setPayMode] = useState<'UPI' | 'Bank Transfer'>('UPI');
   const [payRefNo, setPayRefNo] = useState<string>('');
   const [payScreenshot, setPayScreenshot] = useState<string | null>(null);
   const [paySubmitting, setPaySubmitting] = useState(false);
@@ -190,6 +191,12 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
     fetchCustomerProfile();
   }, [user]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchCustomerProfile();
+    }, [user])
+  );
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchCustomerProfile();
@@ -236,7 +243,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
   };
 
   const submitPaymentRequest = async () => {
-    if (payMode !== 'Cash' && !payRefNo.trim()) {
+    if (!payRefNo.trim()) {
       Alert.alert('Missing Reference', 'Please enter your Transaction / Reference / UTR ID.');
       return;
     }
@@ -382,16 +389,8 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
 
       {/* 1. Modern Redesigned Hero Section */}
       <View style={styles.heroCard}>
-        {/* Top Header Row with Menu trigger & Profile */}
+        {/* Top Header Row with Profile */}
         <View style={styles.heroTop}>
-          <TouchableOpacity
-            style={styles.hamburgerBtn}
-            onPress={() => navigation.openDrawer?.()}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="menu" size={24} color={Colors.white} />
-          </TouchableOpacity>
-
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>
               {(customerRecord?.name || user?.name || 'C').charAt(0).toUpperCase()}
@@ -428,68 +427,6 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
           <View style={styles.walletIconBubble}>
             <Ionicons name="wallet-outline" size={28} color={Colors.gold.primary} />
           </View>
-        </View>
-
-        {/* Quick Action Shortcuts (UX Enhancement) */}
-        <View style={styles.quickActionsRow}>
-          <TouchableOpacity
-            style={styles.quickActionItem}
-            activeOpacity={0.8}
-            onPress={() => {
-              if (chits.length > 0) {
-                handleOpenPay(chits[0], false, pendingDues > 0 ? pendingDues : chits[0]?.monthlyInstallment);
-              } else {
-                Alert.alert('No Active Chit', 'You currently do not have any enrolled chit schemes.');
-              }
-            }}
-          >
-            <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(245, 158, 11, 0.2)' }]}>
-              <Ionicons name="flash-outline" size={18} color={Colors.gold.primary} />
-            </View>
-            <Text style={styles.actionItemText}>Quick Pay</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickActionItem}
-            activeOpacity={0.8}
-            onPress={() => {
-              if (chits.length > 0) {
-                navigation.navigate('CustomerSchedule', {
-                  customer: customerRecord || user,
-                  chit: chits[0],
-                });
-              } else {
-                Alert.alert('Notice', 'No active chit schedule found.');
-              }
-            }}
-          >
-            <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
-              <Ionicons name="calendar-outline" size={18} color="#60a5fa" />
-            </View>
-            <Text style={styles.actionItemText}>Due Chart</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickActionItem}
-            activeOpacity={0.8}
-            onPress={() => setShowQrModal(companyBank || allCompanyBanks[0])}
-          >
-            <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
-              <Ionicons name="qr-code-outline" size={18} color="#34d399" />
-            </View>
-            <Text style={styles.actionItemText}>Bank QR</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickActionItem}
-            activeOpacity={0.8}
-            onPress={() => setShowStatementsModal(true)}
-          >
-            <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(168, 85, 247, 0.2)' }]}>
-              <Ionicons name="receipt-outline" size={18} color="#c084fc" />
-            </View>
-            <Text style={styles.actionItemText}>Receipts</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -1107,7 +1044,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
 
                 <Text style={[styles.inputLabel, { marginTop: 12 }]}>PAYMENT METHOD</Text>
                 <View style={styles.modeRow}>
-                  {(['UPI', 'Bank Transfer', 'Cash'] as const).map((m) => (
+                  {(['UPI', 'Bank Transfer'] as const).map((m) => (
                     <TouchableOpacity
                       key={m}
                       style={[styles.modePill, payMode === m && styles.modePillActive]}
@@ -1118,20 +1055,16 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
                   ))}
                 </View>
 
-                {payMode !== 'Cash' && (
-                  <>
-                    <Text style={[styles.inputLabel, { marginTop: 12 }]}>
-                      TRANSACTION / UTR REFERENCE NUMBER <Text style={{ color: Colors.danger }}>*</Text>
-                    </Text>
-                    <TextInput
-                      style={styles.modalInput}
-                      value={payRefNo}
-                      onChangeText={setPayRefNo}
-                      placeholder="e.g. 329048102948 or Bank Ref ID"
-                      autoCapitalize="characters"
-                    />
-                  </>
-                )}
+                <Text style={[styles.inputLabel, { marginTop: 12 }]}>
+                  TRANSACTION / UTR REFERENCE NUMBER <Text style={{ color: Colors.danger }}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={payRefNo}
+                  onChangeText={setPayRefNo}
+                  placeholder="e.g. 329048102948 or Bank Ref ID"
+                  autoCapitalize="characters"
+                />
 
                 {/* Upload Payment Screenshot */}
                 <View style={{ marginTop: 12 }}>

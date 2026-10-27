@@ -111,36 +111,64 @@ export const DataSyncManager = {
         );
       });
 
-      // Combine MongoDB chits and local chits, preventing duplicate memberships
-      const combinedChitsMap = new Map<string, any>();
       // Combine MongoDB chits and local chits, giving precedence to paid statuses
+      const combinedChitsMap = new Map<string, any>();
       if (Array.isArray(c.chits)) {
-        c.chits.forEach((ch: any) => {
-          const key = `${ch.groupId || ch.groupName || ''}-${ch.ticketNumber || ''}`;
+        c.chits.forEach((ch: any, idx: number) => {
+          const gIdentifier = (ch.groupId || ch.groupName || 'grp').toLowerCase().trim();
+          const tIdentifier = String(ch.ticketNumber || idx + 1).trim();
+          const key = `${gIdentifier}-${tIdentifier}`;
           combinedChitsMap.set(key, ch);
         });
       }
       if (Array.isArray(existing?.chits)) {
-        existing.chits.forEach((ch: any) => {
-          const key = `${ch.groupId || ch.groupName || ''}-${ch.ticketNumber || ''}`;
-          const current = combinedChitsMap.get(key) || {};
+        existing.chits.forEach((ch: any, idx: number) => {
+          const gIdentifier = (ch.groupId || ch.groupName || 'grp').toLowerCase().trim();
+          const tIdentifier = String(ch.ticketNumber || idx + 1).trim();
+          const key = `${gIdentifier}-${tIdentifier}`;
+          // Check for match either by key or if there's only 1 chit on both sides
+          let matchedKey = key;
+          if (!combinedChitsMap.has(key)) {
+            for (const existingKey of combinedChitsMap.keys()) {
+              if (
+                existingKey.includes(gIdentifier) ||
+                gIdentifier.includes(existingKey.split('-')[0]) ||
+                combinedChitsMap.size === 1
+              ) {
+                matchedKey = existingKey;
+                break;
+              }
+            }
+          }
+          const current = combinedChitsMap.get(matchedKey) || {};
           // If local or mongo has updated paymentStatus to PAID or higher paidAmount, preserve it
-          const localPaidAmt = Number(ch.paidAmount || ch.totalPaid || 0);
-          const currentPaidAmt = Number(current.paidAmount || current.totalPaid || 0);
-          const isPaid = ch.paymentStatus === 'PAID' || current.paymentStatus === 'PAID';
+          const localPaidAmt = Number(ch.paidAmount ?? ch.totalPaid ?? 0);
+          const currentPaidAmt = Number(current.paidAmount ?? current.totalPaid ?? 0);
+          const highestPaid = Math.max(localPaidAmt, currentPaidAmt);
+          const isPaid = ch.paymentStatus === 'PAID' || current.paymentStatus === 'PAID' || (highestPaid > 0 && highestPaid >= Number(ch.monthlyInstallment || current.monthlyInstallment || 0));
           const monthly = Number(ch.monthlyInstallment || current.monthlyInstallment || 0);
-          const pendingCandidate = Math.min(
-            Number(ch.pending !== undefined ? ch.pending : (monthly || 0)),
-            Number(current.pending !== undefined ? current.pending : (monthly || 0))
-          );
-          combinedChitsMap.set(key, {
+
+          let finalPending = 0;
+          if (isPaid) {
+            finalPending = 0;
+          } else if (ch.pending !== undefined && current.pending !== undefined) {
+            finalPending = Math.min(Number(ch.pending), Number(current.pending));
+          } else if (ch.pending !== undefined) {
+            finalPending = Number(ch.pending);
+          } else if (current.pending !== undefined) {
+            finalPending = Number(current.pending);
+          } else {
+            finalPending = Math.max(0, monthly - highestPaid);
+          }
+
+          combinedChitsMap.set(matchedKey, {
             ...current,
             ...ch,
             monthlyInstallment: monthly,
-            paidAmount: Math.max(localPaidAmt, currentPaidAmt),
-            totalPaid: Math.max(localPaidAmt, currentPaidAmt),
-            paymentStatus: isPaid ? 'PAID' : (ch.paymentStatus || current.paymentStatus || 'DUE'),
-            pending: isPaid ? 0 : (pendingCandidate > 0 ? pendingCandidate : monthly),
+            paidAmount: highestPaid,
+            totalPaid: highestPaid,
+            paymentStatus: finalPending === 0 ? 'PAID' : 'DUE',
+            pending: finalPending,
           });
         });
       }
@@ -148,7 +176,7 @@ export const DataSyncManager = {
 
       // Calculate total paid & pending from actual chits
       const calculatedPaidFromChits = chits.reduce(
-        (acc: number, ch: any) => acc + Number(ch.totalPaid || ch.paidAmount || 0),
+        (acc: number, ch: any) => acc + Number(ch.totalPaid ?? ch.paidAmount ?? 0),
         0
       );
       const totalPaid = Math.max(
@@ -159,12 +187,16 @@ export const DataSyncManager = {
 
       const calculatedPendingFromChits = chits.reduce(
         (acc: number, ch: any) =>
-          acc + Number(ch.pending !== undefined ? ch.pending : (ch.paymentStatus === 'DUE' ? ch.monthlyInstallment : 0) || 0),
+          acc + Number(ch.pending !== undefined ? ch.pending : (ch.paymentStatus === 'PAID' ? 0 : ch.monthlyInstallment || 0)),
         0
       );
+      // Give precedence to lowest recorded pending between local cache and mongo
       const pending = chits.length > 0
         ? calculatedPendingFromChits
-        : (c.pending !== undefined ? c.pending : (existing?.pending ?? 0));
+        : Math.min(
+            Number(c.pending !== undefined ? c.pending : 999999),
+            Number(existing?.pending !== undefined ? existing.pending : (c.pending ?? 0))
+          );
 
       return {
         id: c.customerCode || c._id,
@@ -669,21 +701,43 @@ export const DataSyncManager = {
         const newPending = Math.max(0, Number(c.pending || 0) - Number(receiptData.amount));
 
         let amountLeftToApply = Number(receiptData.amount);
+        const reqGroup = (receiptData.chitGroup || '').toLowerCase().trim();
+        const reqTicket = (receiptData.ticketNumber || '').trim();
+
+        // Check if there is an exact or fuzzy group match
+        let targetIndex = -1;
+        if (Array.isArray(c.chits) && c.chits.length > 0) {
+          if (reqGroup) {
+            targetIndex = c.chits.findIndex((ch: any) => {
+              const gId = String(ch.groupId || '').toLowerCase().trim();
+              const gName = String(ch.groupName || '').toLowerCase().trim();
+              const tNum = String(ch.ticketNumber || '').trim();
+              const ticketMatch = !reqTicket || tNum === reqTicket;
+              const groupMatch = gId === reqGroup || gName === reqGroup || reqGroup.includes(gId) || reqGroup.includes(gName) || (gName && gName.includes(reqGroup));
+              return groupMatch && ticketMatch;
+            });
+          }
+          // If no specific group match or multiple chits, find the first chit that has dues
+          if (targetIndex === -1) {
+            targetIndex = c.chits.findIndex((ch: any) => {
+              const chPending = Number(ch.pending !== undefined ? ch.pending : (ch.monthlyInstallment || 0));
+              return chPending > 0;
+            });
+          }
+          // Fallback to first chit if all paid or none found
+          if (targetIndex === -1) {
+            targetIndex = 0;
+          }
+        }
+
         const updatedChits = Array.isArray(c.chits)
-          ? c.chits.map((ch: any) => {
-              const matchesGroup =
-                !receiptData.chitGroup ||
-                String(ch.groupId || '').toLowerCase() === receiptData.chitGroup.toLowerCase() ||
-                String(ch.groupName || '').toLowerCase() === receiptData.chitGroup.toLowerCase();
+          ? c.chits.map((ch: any, idx: number) => {
+              const isTargetChit = idx === targetIndex;
 
-              const matchesTicket =
-                !receiptData.ticketNumber ||
-                String(ch.ticketNumber || '') === String(receiptData.ticketNumber);
-
-              if (matchesGroup && matchesTicket && amountLeftToApply > 0) {
+              if (isTargetChit && amountLeftToApply > 0) {
                 const applied = amountLeftToApply;
                 amountLeftToApply = 0;
-                const chPaid = Number(ch.paidAmount || ch.totalPaid || 0) + applied;
+                const chPaid = Number(ch.paidAmount ?? ch.totalPaid ?? 0) + applied;
                 const currentChPending = Number(ch.pending !== undefined ? ch.pending : (ch.monthlyInstallment || 0));
                 const chPending = Math.max(0, currentChPending - applied);
                 return {

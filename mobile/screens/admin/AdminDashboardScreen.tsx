@@ -69,13 +69,15 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
 
   const [recentCustomers, setRecentCustomers] = useState<any[]>([]);
   const [recentLedger, setRecentLedger] = useState<any[]>([]);
+  const [pendingVerifications, setPendingVerifications] = useState<any[]>([]);
 
   const loadAllMetrics = async () => {
     try {
-      const [custs, groups, ledger] = await Promise.all([
+      const [custs, groups, ledger, paymentReqs] = await Promise.all([
         DataSyncManager.getCustomers(),
         DataSyncManager.getChitGroups(),
         DataSyncManager.getLedgerTransactions(),
+        DataSyncManager.getPaymentRequests(),
       ]);
 
       setAllCustomersList(custs);
@@ -112,6 +114,9 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
 
       setRecentCustomers(custs.slice(0, 4));
       setRecentLedger(ledger.slice(0, 4));
+
+      const pending = (paymentReqs || []).filter((r: any) => r.status === 'PENDING');
+      setPendingVerifications(pending);
     } catch (e) {
       console.warn('Dashboard sync error:', e);
     } finally {
@@ -251,7 +256,11 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
 
   useEffect(() => {
     loadAllMetrics();
-  }, []);
+    const unsubscribe = navigation?.addListener?.('focus', () => {
+      loadAllMetrics();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -356,6 +365,36 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
         </TouchableOpacity>
       </View>
 
+      {/* Prominent Pending Online Payment Verifications Banner (Advance & Installments) */}
+      {pendingVerifications.length > 0 && (
+        <TouchableOpacity
+          style={styles.pendingVerificationAlert}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('PaymentVerifications')}
+        >
+          <View style={styles.alertIconPulseBox}>
+            <Ionicons name="alert-circle" size={24} color="#D97706" />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.alertTitle}>Payment Verifications</Text>
+              <View style={styles.alertBadge}>
+                <Text style={styles.alertBadgeText}>{pendingVerifications.length} PENDING</Text>
+              </View>
+            </View>
+            <Text style={styles.alertSubtitle}>
+              {pendingVerifications[0]?.isAdvance || pendingVerifications[0]?.adminNotes?.includes('Advance')
+                ? `Customer advance payment of ${formatCurrency(pendingVerifications[0]?.amount || 0)} awaiting approval`
+                : `${pendingVerifications.length} online payment${pendingVerifications.length > 1 ? 's' : ''} submitted by customers need verification`}
+            </Text>
+          </View>
+          <View style={styles.alertActionBtn}>
+            <Text style={styles.alertActionBtnText}>Review</Text>
+            <Ionicons name="chevron-forward" size={14} color={Colors.white} />
+          </View>
+        </TouchableOpacity>
+      )}
+
       {/* 3. 2x2 Distinctive Metric Cards Grid (Total Groups, Fixed, Regular, Auction) */}
       <View style={styles.gridContainer}>
         {/* Total Groups */}
@@ -415,8 +454,24 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
         </TouchableOpacity>
       </View>
 
-      {/* 4. Quick Actions Tiles Row (Add Group, Add Member, Record Payments, More) */}
+      {/* 4. Quick Actions Tiles Row */}
       <View style={styles.quickActionsCard}>
+        <TouchableOpacity
+          style={styles.actionTile}
+          onPress={() => navigation.navigate('PaymentVerifications')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.actionIconCircle, { backgroundColor: '#FEF3C7', position: 'relative' }]}>
+            <Ionicons name="shield-checkmark-outline" size={20} color="#D97706" />
+            {pendingVerifications.length > 0 && (
+              <View style={styles.tileBadgeCount}>
+                <Text style={styles.tileBadgeCountText}>{pendingVerifications.length}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.actionTileText}>Verify Pay</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.actionTile}
           onPress={() => {
@@ -462,20 +517,72 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           <View style={[styles.actionIconCircle, { backgroundColor: Colors.successLight }]}>
             <Ionicons name="card-outline" size={20} color={Colors.success} />
           </View>
-          <Text style={styles.actionTileText}>Record Payments</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionTile}
-          onPress={() => navigation.navigate('Reports')}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.actionIconCircle, { backgroundColor: '#F1F5F9' }]}>
-            <Ionicons name="ellipsis-horizontal" size={20} color={Colors.navy.primary} />
-          </View>
-          <Text style={styles.actionTileText}>More</Text>
+          <Text style={styles.actionTileText}>Payments</Text>
         </TouchableOpacity>
       </View>
+
+      {/* 4.5. Pending Online Verifications Section (Advance Payments & Installments) */}
+      {pendingVerifications.length > 0 && (
+        <>
+          <View style={styles.sectionHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.sectionTitle}>Pending Verifications</Text>
+              <View style={[styles.alertBadge, { backgroundColor: '#FEF3C7' }]}>
+                <Text style={[styles.alertBadgeText, { color: '#B45309' }]}>
+                  {pendingVerifications.length}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('PaymentVerifications')}>
+              <Text style={styles.sectionLink}>Review All</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.listWrapper}>
+            {pendingVerifications.slice(0, 3).map((pv: any) => {
+              const isAdv = pv.isAdvance || pv.adminNotes?.includes('Advance');
+              return (
+                <TouchableOpacity
+                  key={pv.id}
+                  style={styles.verificationRowCard}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('PaymentVerifications')}
+                >
+                  <View style={[styles.verifyIconBubble, isAdv && { backgroundColor: '#FFFBEB' }]}>
+                    <Ionicons
+                      name={isAdv ? 'star' : 'receipt-outline'}
+                      size={18}
+                      color={isAdv ? '#D97706' : Colors.navy.secondary}
+                    />
+                  </View>
+
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={styles.verifyCustName}>{pv.customerName || 'Customer'}</Text>
+                      {isAdv && (
+                        <View style={styles.advanceMiniBadge}>
+                          <Text style={styles.advanceMiniBadgeText}>ADVANCE</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.verifyMeta}>
+                      {pv.groupName || 'Chit Group'} • {pv.paymentMode || 'Online'}
+                    </Text>
+                  </View>
+
+                  <View style={{ alignItems: 'flex-end', marginLeft: 8 }}>
+                    <Text style={styles.verifyAmount}>{formatCurrency(pv.amount || 0)}</Text>
+                    <View style={styles.pendingActionPill}>
+                      <Text style={styles.pendingActionPillText}>Verify</Text>
+                      <Ionicons name="arrow-forward" size={10} color="#B45309" />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </>
+      )}
 
       {/* 5. Enrolled Members Section (Reference Card Style) */}
       <View style={styles.sectionHeaderRow}>
@@ -1275,6 +1382,89 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
+  // Pending Verification Alert Banner
+  pendingVerificationAlert: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: '#FCD34D',
+    borderRadius: 18,
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  alertIconPulseBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  alertBadge: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  alertBadgeText: {
+    color: Colors.white,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  alertSubtitle: {
+    fontSize: 12,
+    color: '#B45309',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  alertActionBtn: {
+    backgroundColor: '#D97706',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    gap: 3,
+    marginLeft: 6,
+  },
+  alertActionBtnText: {
+    color: Colors.white,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  tileBadgeCount: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#DC2626',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: Colors.surface,
+  },
+  tileBadgeCountText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+
   // 4. Quick Actions
   quickActionsCard: {
     backgroundColor: Colors.surface,
@@ -1295,21 +1485,88 @@ const styles = StyleSheet.create({
   },
   actionTile: {
     alignItems: 'center',
-    width: '24%',
+    width: '18%',
   },
   actionIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 46,
+    height: 46,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   actionTileText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
+  },
+
+  // Verification Row Card
+  verificationRowCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  verifyIconBubble: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verifyCustName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  advanceMiniBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
+  advanceMiniBadgeText: {
+    color: '#B45309',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  verifyMeta: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  verifyAmount: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#D97706',
+  },
+  pendingActionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 3,
+    marginTop: 4,
+  },
+  pendingActionPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#B45309',
   },
 
   // 5. Section Headers & Lists

@@ -28,6 +28,9 @@ import { NotificationsScreen } from '../screens/admin/NotificationsScreen';
 import { SettingsScreen } from '../screens/admin/SettingsScreen';
 import { StaffDashboardScreen } from '../screens/staff/StaffDashboardScreen';
 import { CustomerDashboardScreen } from '../screens/customer/CustomerDashboardScreen';
+import { CustomerBankDetailsScreen } from '../screens/customer/CustomerBankDetailsScreen';
+import { CustomerPaymentHistoryScreen } from '../screens/customer/CustomerPaymentHistoryScreen';
+import { CustomerSupportScreen } from '../screens/customer/CustomerSupportScreen';
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -131,17 +134,27 @@ const StaffDrawer = () => {
       <Drawer.Screen
         name="StaffDashboard"
         component={StaffDashboardScreen}
-        options={{ title: 'Field Collections' }}
+        options={{ title: 'Staff Dashboard' }}
+      />
+      <Drawer.Screen
+        name="ReceiptEntry"
+        component={ReceiptEntryScreen}
+        options={{ title: 'Raise Receipts' }}
       />
       <Drawer.Screen
         name="CustomerList"
         component={CustomerListScreen}
-        options={{ title: 'Members Directory' }}
+        options={{ title: 'Customers Directory' }}
       />
       <Drawer.Screen
         name="AddCustomer"
         component={AddCustomerScreen}
-        options={{ title: 'Register Member' }}
+        options={{ title: 'Add Customer' }}
+      />
+      <Drawer.Screen
+        name="ChitGroupList"
+        component={ChitGroupListScreen}
+        options={{ title: 'Chit Groups & Enroll' }}
       />
       <Drawer.Screen
         name="Reports"
@@ -179,9 +192,19 @@ const CustomerDrawer = () => {
         options={{ title: 'Jenista Chit Funds' }}
       />
       <Drawer.Screen
-        name="CustomerSettings"
-        component={SettingsScreen}
-        options={{ title: 'Settings & Profile' }}
+        name="CustomerBankDetails"
+        component={CustomerBankDetailsScreen}
+        options={{ title: 'Official Bank & UPI' }}
+      />
+      <Drawer.Screen
+        name="CustomerPaymentHistory"
+        component={CustomerPaymentHistoryScreen}
+        options={{ title: 'Payment History' }}
+      />
+      <Drawer.Screen
+        name="CustomerSupport"
+        component={CustomerSupportScreen}
+        options={{ title: 'Help & Support' }}
       />
     </Drawer.Navigator>
   );

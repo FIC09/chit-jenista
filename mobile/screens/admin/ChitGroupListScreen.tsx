@@ -14,11 +14,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
+import { useAuth } from '../../store/AuthContext';
 import { DataSyncManager } from '../../services/dataSync';
 import { formatCurrency } from '../../utils/format';
 import { ChitGroup } from '../../types';
 
 export const ChitGroupListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { user } = useAuth();
+  const isStaff = user?.role === 'STAFF' || user?.role === 'COLLECTION_AGENT';
+  const canCreateGroup = !isStaff;
+
   const [groups, setGroups] = useState<ChitGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -43,6 +48,10 @@ export const ChitGroupListScreen: React.FC<{ navigation: any }> = ({ navigation 
   };
 
   const handleCreateGroup = async () => {
+    if (!canCreateGroup) {
+      Alert.alert('Permission Denied', 'Staff members are not permitted to create new chit groups.');
+      return;
+    }
     if (!newGroupName.trim()) {
       Alert.alert('Validation Error', 'Please enter a chit group name.');
       return;
@@ -183,18 +192,20 @@ export const ChitGroupListScreen: React.FC<{ navigation: any }> = ({ navigation 
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.addGroupTopBtn}
-          onPress={() => {
-            setNewGroupName('');
-            setNewGroupScheme('Auction');
-            setIsAddGroupModalOpen(true);
-          }}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={16} color={Colors.navy.primary} />
-          <Text style={styles.addGroupTopText}>Add Group</Text>
-        </TouchableOpacity>
+        {canCreateGroup && (
+          <TouchableOpacity
+            style={styles.addGroupTopBtn}
+            onPress={() => {
+              setNewGroupName('');
+              setNewGroupScheme('Auction');
+              setIsAddGroupModalOpen(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add" size={16} color={Colors.navy.primary} />
+            <Text style={styles.addGroupTopText}>Add Group</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {loading ? (

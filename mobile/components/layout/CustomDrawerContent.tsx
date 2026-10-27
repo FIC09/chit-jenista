@@ -53,7 +53,7 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.userName} numberOfLines={1}>{displayName}</Text>
             <Text style={styles.userRoleText}>
-              {user?.role === 'CUSTOMER' ? 'Member' : 'Administrator'}
+              {user?.role === 'CUSTOMER' ? 'Member' : isStaff ? 'Field Executive / Staff' : 'Administrator'}
             </Text>
           </View>
           <Ionicons name="chevron-down" size={18} color="rgba(255, 255, 255, 0.5)" />
@@ -75,32 +75,72 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
               title="My Chit Portfolio"
               icon="layers-outline"
               isActive={currentRoute === 'CustomerHome'}
-              onPress={() => navigateTo('CustomerHome', { action: 'PORTFOLIO' })}
+              onPress={() => navigateTo('CustomerHome')}
             />
             <DrawerItem
               title="Official Bank & UPI"
               icon="business-outline"
-              isActive={false}
-              onPress={() => navigateTo('CustomerHome', { action: 'BANK_DETAILS' })}
+              isActive={currentRoute === 'CustomerBankDetails'}
+              onPress={() => navigateTo('CustomerBankDetails')}
             />
             <DrawerItem
               title="Payment History"
               icon="receipt-outline"
-              isActive={false}
-              onPress={() => navigateTo('CustomerHome', { action: 'STATEMENTS' })}
+              isActive={currentRoute === 'CustomerPaymentHistory'}
+              onPress={() => navigateTo('CustomerPaymentHistory')}
             />
             <View style={styles.menuDivider} />
             <DrawerItem
-              title="Settings & Policies"
-              icon="settings-outline"
-              isActive={currentRoute === 'CustomerSettings'}
-              onPress={() => navigateTo('CustomerSettings')}
-            />
-            <DrawerItem
               title="Help & Support"
               icon="headset-outline"
-              isActive={false}
-              onPress={() => navigateTo('CustomerHome', { action: 'SUPPORT' })}
+              isActive={currentRoute === 'CustomerSupport'}
+              onPress={() => navigateTo('CustomerSupport')}
+            />
+          </>
+        ) : isStaff ? (
+          <>
+            <DrawerItem
+              title="Raise Receipts"
+              icon="card-outline"
+              isActive={currentRoute === 'ReceiptEntry'}
+              onPress={() => navigateTo('ReceiptEntry')}
+            />
+
+            <DrawerItem
+              title="Members Directory"
+              icon="people-outline"
+              isActive={currentRoute === 'CustomerList'}
+              onPress={() => navigateTo('CustomerList')}
+            />
+
+            <DrawerItem
+              title="Add Customer"
+              icon="person-add-outline"
+              isActive={currentRoute === 'AddCustomer'}
+              onPress={() => navigateTo('AddCustomer')}
+            />
+
+            <DrawerItem
+              title="Chit Groups & Enroll"
+              icon="layers-outline"
+              isActive={currentRoute === 'ChitGroupList'}
+              onPress={() => navigateTo('ChitGroupList')}
+            />
+
+            <View style={styles.menuDivider} />
+
+            <DrawerItem
+              title="Overdue Dues Report"
+              icon="bar-chart-outline"
+              isActive={currentRoute === 'Reports'}
+              onPress={() => navigateTo('Reports')}
+            />
+
+            <DrawerItem
+              title="Notifications"
+              icon="notifications-outline"
+              isActive={currentRoute === 'Notifications'}
+              onPress={() => navigateTo('Notifications')}
             />
           </>
         ) : (

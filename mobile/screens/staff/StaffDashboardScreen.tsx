@@ -108,6 +108,53 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
         </View>
       </View>
 
+      {/* Staff Quick Actions Row */}
+      <View style={styles.quickActionsCard}>
+        <TouchableOpacity
+          style={styles.actionTile}
+          onPress={() => navigation.navigate('ReceiptEntry')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.actionIconCircle, { backgroundColor: '#F0FDF4' }]}>
+            <Ionicons name="card-outline" size={20} color="#16A34A" />
+          </View>
+          <Text style={styles.actionTileText}>Raise Receipt</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionTile}
+          onPress={() => navigation.navigate('AddCustomer')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.actionIconCircle, { backgroundColor: Colors.blueSubtle }]}>
+            <Ionicons name="person-add-outline" size={20} color={Colors.blueAccent} />
+          </View>
+          <Text style={styles.actionTileText}>Add Customer</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionTile}
+          onPress={() => navigation.navigate('ChitGroupList')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.actionIconCircle, { backgroundColor: '#FFF8EB' }]}>
+            <Ionicons name="person-add" size={20} color={Colors.gold.dark} />
+          </View>
+          <Text style={styles.actionTileText}>Add to Group</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionTile}
+          onPress={() => navigation.navigate('CustomerList')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.actionIconCircle, { backgroundColor: '#F1F5F9' }]}>
+            <Ionicons name="people-outline" size={20} color={Colors.navy.primary} />
+          </View>
+          <Text style={styles.actionTileText}>Members</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Tab Switcher */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
@@ -304,6 +351,41 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#f87171',
     marginTop: 4,
+  },
+  quickActionsCard: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  actionTile: {
+    alignItems: 'center',
+    width: '24%',
+  },
+  actionIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  actionTileText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.text,
+    textAlign: 'center',
   },
   tabContainer: {
     flexDirection: 'row',
