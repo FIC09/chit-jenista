@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-nat
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useAuth } from '../store/AuthContext';
@@ -31,6 +32,7 @@ import { CustomerDashboardScreen } from '../screens/customer/CustomerDashboardSc
 import { CustomerBankDetailsScreen } from '../screens/customer/CustomerBankDetailsScreen';
 import { CustomerPaymentHistoryScreen } from '../screens/customer/CustomerPaymentHistoryScreen';
 import { CustomerSupportScreen } from '../screens/customer/CustomerSupportScreen';
+import { CustomerPortfolioScreen } from '../screens/customer/CustomerPortfolioScreen';
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -42,16 +44,16 @@ const AdminDrawer = () => {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={({ navigation }) => ({
         headerShown: true,
-        headerStyle: { backgroundColor: Colors.navy.primary },
-        headerTintColor: Colors.white,
-        headerTitleStyle: { fontWeight: '800', fontSize: 17 },
+        headerStyle: { backgroundColor: '#F9FBFB', elevation: 0, shadowOpacity: 0 },
+        headerTintColor: '#0C8A7D',
+        headerTitleStyle: { fontWeight: '800', fontSize: 18, color: '#086359' },
         drawerType: 'front',
         headerLeft: () => (
           <TouchableOpacity
             style={{ paddingLeft: 16, paddingRight: 8 }}
             onPress={() => navigation.openDrawer()}
           >
-            <Ionicons name="menu" size={26} color={Colors.white} />
+            <Ionicons name="menu" size={26} color="#0C8A7D" />
           </TouchableOpacity>
         ),
         headerRight: () => (
@@ -59,7 +61,7 @@ const AdminDrawer = () => {
             style={{ paddingRight: 16, paddingLeft: 8 }}
             onPress={() => navigation.navigate('Notifications')}
           >
-            <Ionicons name="notifications-outline" size={22} color={Colors.white} />
+            <Ionicons name="notifications-outline" size={22} color="#0C8A7D" />
           </TouchableOpacity>
         ),
       })}
@@ -67,7 +69,7 @@ const AdminDrawer = () => {
       <Drawer.Screen
         name="AdminDashboard"
         component={AdminDashboardScreen}
-        options={{ title: 'Jenista Chit Funds' }}
+        options={{ title: 'Jenista Chit Funds', headerRight: () => null }}
       />
       <Drawer.Screen
         name="CustomerList"
@@ -125,16 +127,16 @@ const StaffDrawer = () => {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={({ navigation }) => ({
         headerShown: true,
-        headerStyle: { backgroundColor: Colors.navy.primary },
-        headerTintColor: Colors.white,
-        headerTitleStyle: { fontWeight: '800', fontSize: 17 },
+        headerStyle: { backgroundColor: '#F9FBFB', elevation: 0, shadowOpacity: 0 },
+        headerTintColor: '#0C8A7D',
+        headerTitleStyle: { fontWeight: '800', fontSize: 18, color: '#086359' },
         drawerType: 'front',
         headerLeft: () => (
           <TouchableOpacity
             style={{ paddingLeft: 16, paddingRight: 8 }}
             onPress={() => navigation.openDrawer()}
           >
-            <Ionicons name="menu" size={26} color={Colors.white} />
+            <Ionicons name="menu" size={26} color="#0C8A7D" />
           </TouchableOpacity>
         ),
         headerRight: () => (
@@ -142,7 +144,7 @@ const StaffDrawer = () => {
             style={{ paddingRight: 16, paddingLeft: 8 }}
             onPress={() => navigation.navigate('Notifications')}
           >
-            <Ionicons name="notifications-outline" size={22} color={Colors.white} />
+            <Ionicons name="notifications-outline" size={22} color="#0C8A7D" />
           </TouchableOpacity>
         ),
       })}
@@ -181,56 +183,79 @@ const StaffDrawer = () => {
   );
 };
 
-// Customer Sidebar Drawer containing CustomDrawerContent
-const CustomerDrawer = () => {
+const Tab = createBottomTabNavigator();
+
+// Customer Bottom Tab Navigator matching Funds Genie design
+const CustomerTabs = () => {
   return (
-    <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawerContent {...props} />}
-      screenOptions={({ navigation }) => ({
+    <Tab.Navigator
+      screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: Colors.navy.primary },
-        headerTintColor: Colors.white,
-        headerTitleStyle: { fontWeight: '800', fontSize: 17 },
-        drawerType: 'front',
-        headerLeft: () => (
-          <TouchableOpacity
-            style={{ paddingLeft: 16, paddingRight: 8 }}
-            onPress={() => navigation.openDrawer()}
-          >
-            <Ionicons name="menu" size={26} color={Colors.white} />
-          </TouchableOpacity>
-        ),
-        headerRight: () => (
-          <TouchableOpacity
-            style={{ paddingRight: 16, paddingLeft: 8 }}
-            onPress={() => navigation.navigate('Notifications')}
-          >
-            <Ionicons name="notifications-outline" size={22} color={Colors.white} />
-          </TouchableOpacity>
-        ),
-      })}
+        headerStyle: { backgroundColor: '#F9FBFB', elevation: 0, shadowOpacity: 0 },
+        headerTintColor: '#0C8A7D',
+        headerTitleStyle: { fontWeight: '800', fontSize: 18, color: '#086359' },
+        tabBarActiveTintColor: '#0C8A7D',
+        tabBarInactiveTintColor: '#94A3B8',
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#E2E8F0',
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '700',
+        },
+        headerRight: () => null,
+      }}
     >
-      <Drawer.Screen
+      <Tab.Screen
         name="CustomerHome"
         component={CustomerDashboardScreen}
-        options={{ title: 'Jenista Chit Funds' }}
+        options={{
+          headerShown: false,
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
+          ),
+        }}
       />
-      <Drawer.Screen
+      <Tab.Screen
         name="CustomerBankDetails"
         component={CustomerBankDetailsScreen}
-        options={{ title: 'Official Bank & UPI' }}
+        options={{
+          title: 'Official Bank & UPI',
+          tabBarLabel: 'Bank & UPI',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={22} color={color} />
+          ),
+        }}
       />
-      <Drawer.Screen
+      <Tab.Screen
         name="CustomerPaymentHistory"
         component={CustomerPaymentHistoryScreen}
-        options={{ title: 'Payment History' }}
+        options={{
+          title: 'Payment Receipts',
+          tabBarLabel: 'Receipts',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={22} color={color} />
+          ),
+        }}
       />
-      <Drawer.Screen
+      <Tab.Screen
         name="CustomerSupport"
         component={CustomerSupportScreen}
-        options={{ title: 'Help & Support' }}
+        options={{
+          title: 'Help & Support',
+          tabBarLabel: 'Support',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'headset' : 'headset-outline'} size={22} color={color} />
+          ),
+        }}
       />
-    </Drawer.Navigator>
+    </Tab.Navigator>
   );
 };
 
@@ -252,16 +277,35 @@ export const RootNavigator = () => {
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : user.role === 'CUSTOMER' ? (
           <>
-            <Stack.Screen name="CustomerRoot" component={CustomerDrawer} />
+            <Stack.Screen name="CustomerRoot" component={CustomerTabs} />
+            <Stack.Screen
+              name="CustomerPortfolio"
+              component={CustomerPortfolioScreen}
+              options={{ headerShown: false }}
+            />
             <Stack.Screen
               name="CustomerSchedule"
               component={CustomerScheduleScreen}
-              options={{ headerShown: true, title: 'Installment Breakdown', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Due Schedule & Statement',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
             <Stack.Screen
               name="Notifications"
               component={NotificationsScreen}
-              options={{ headerShown: true, title: 'Notifications & Alerts', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Notifications & Alerts',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
           </>
         ) : user.role === 'STAFF' || user.role === 'COLLECTION_AGENT' ? (
@@ -270,27 +314,62 @@ export const RootNavigator = () => {
             <Stack.Screen
               name="ChitGroupDetail"
               component={ChitGroupDetailScreen}
-              options={{ headerShown: true, title: 'Group & Enrolled Members', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Group & Enrolled Members',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
             <Stack.Screen
               name="CustomerDetail"
               component={CustomerDetailScreen}
-              options={{ headerShown: true, title: 'Member Profile', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Member Profile',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
             <Stack.Screen
               name="CustomerSchedule"
               component={CustomerScheduleScreen}
-              options={{ headerShown: true, title: 'Installment Breakdown', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Installment Breakdown',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
             <Stack.Screen
               name="ReceiptEntry"
               component={ReceiptEntryScreen}
-              options={{ headerShown: true, title: 'Receipt Desk & Collections', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Receipt Desk & Collections',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
             <Stack.Screen
               name="Notifications"
               component={NotificationsScreen}
-              options={{ headerShown: true, title: 'Notifications & Alerts', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Notifications & Alerts',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
           </>
         ) : (
@@ -300,27 +379,62 @@ export const RootNavigator = () => {
             <Stack.Screen
               name="ChitGroupDetail"
               component={ChitGroupDetailScreen}
-              options={{ headerShown: true, title: 'Group & Enrolled Members', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Group & Enrolled Members',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
             <Stack.Screen
               name="CustomerDetail"
               component={CustomerDetailScreen}
-              options={{ headerShown: true, title: 'Member Profile', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Member Profile',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
             <Stack.Screen
               name="CustomerSchedule"
               component={CustomerScheduleScreen}
-              options={{ headerShown: true, title: 'Installment Breakdown', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Installment Breakdown',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
             <Stack.Screen
               name="ReceiptEntry"
               component={ReceiptEntryScreen}
-              options={{ headerShown: true, title: 'Receipt Desk & Collections', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Receipt Desk & Collections',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
             <Stack.Screen
               name="Notifications"
               component={NotificationsScreen}
-              options={{ headerShown: true, title: 'Notifications & Alerts', headerStyle: { backgroundColor: Colors.navy.primary }, headerTintColor: Colors.white }}
+              options={{
+                headerShown: true,
+                title: 'Notifications & Alerts',
+                headerStyle: { backgroundColor: '#F9FBFB' },
+                headerTintColor: '#0C8A7D',
+                headerTitleStyle: { fontWeight: '800', color: '#086359' },
+                headerShadowVisible: false,
+              }}
             />
           </>
         )}
@@ -332,7 +446,7 @@ export const RootNavigator = () => {
 const styles = StyleSheet.create({
   center: {
     flex: 1,
-    backgroundColor: Colors.navy.primary,
+    backgroundColor: '#F9FBFB',
     alignItems: 'center',
     justifyContent: 'center',
   },

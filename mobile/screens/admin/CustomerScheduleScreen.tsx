@@ -109,16 +109,24 @@ export const CustomerScheduleScreen: React.FC<{ route: any }> = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
-      {/* Summary Header */}
+      {/* Summary Header - Funds Genie Teal Banner */}
       <View style={styles.summaryBox}>
-        <Text style={styles.schemeName}>
-          {scheduleSummary.groupName} • {scheduleSummary.scheme} Chit
-        </Text>
-        <Text style={styles.chitValueText}>
-          Total Chit Value: {formatCurrency(scheduleSummary.chitValue)}
-        </Text>
+        <View style={styles.summaryTopRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.schemeName}>
+              {scheduleSummary.groupName}
+            </Text>
+            <Text style={styles.schemeSub}>
+              {scheduleSummary.scheme || 'Auction'} Scheme • 20 Months Cycle
+            </Text>
+          </View>
+          <View style={styles.chitValueBadge}>
+            <Text style={styles.chitValueLabel}>CHIT VALUE</Text>
+            <Text style={styles.chitValueText}>{formatCurrency(scheduleSummary.chitValue)}</Text>
+          </View>
+        </View>
 
         <View style={styles.summaryGrid}>
           <View style={styles.sumCol}>
@@ -130,14 +138,14 @@ export const CustomerScheduleScreen: React.FC<{ route: any }> = ({ route }) => {
           <View style={styles.vLine} />
           <View style={styles.sumCol}>
             <Text style={styles.sumLabel}>TOTAL PAID</Text>
-            <Text style={[styles.sumVal, { color: '#34D399' }]}>
+            <Text style={styles.sumValGreen}>
               {formatCurrency(scheduleSummary.totalPaidAmount)}
             </Text>
           </View>
           <View style={styles.vLine} />
           <View style={styles.sumCol}>
             <Text style={styles.sumLabel}>BALANCE DUES</Text>
-            <Text style={[styles.sumVal, { color: '#F87171' }]}>
+            <Text style={styles.sumValOrange}>
               {formatCurrency(scheduleSummary.remainingBalanceDue)}
             </Text>
           </View>
@@ -159,35 +167,64 @@ export const CustomerScheduleScreen: React.FC<{ route: any }> = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#F9FBFB',
   },
   summaryBox: {
-    backgroundColor: Colors.navy.primary,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    backgroundColor: '#0C8A7D',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: '#0C8A7D',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  summaryTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
   },
   schemeName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
-    color: Colors.white,
-    letterSpacing: 0.2,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  schemeSub: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  chitValueBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    alignItems: 'flex-end',
+  },
+  chitValueLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   chitValueText: {
     fontSize: 13,
-    color: Colors.gold.primary,
-    marginTop: 2,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontWeight: '800',
+    marginTop: 1,
   },
   summaryGrid: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 18,
-    paddingTop: 14,
+    marginTop: 14,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   sumCol: {
     flex: 1,
@@ -195,38 +232,45 @@ const styles = StyleSheet.create({
   },
   sumLabel: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.65)',
+    color: 'rgba(255, 255, 255, 0.75)',
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   sumVal: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
-    color: Colors.white,
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  sumValGreen: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#D1FAE5',
+    marginTop: 2,
+  },
+  sumValOrange: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FEF3C7',
     marginTop: 2,
   },
   vLine: {
     width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    height: 26,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 32,
-    gap: 12,
+    gap: 10,
   },
   rowCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 18,
-    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: Colors.navy.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    borderColor: '#D8E4E5',
   },
   monthHeader: {
     flexDirection: 'row',
@@ -235,38 +279,38 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   monthPill: {
-    backgroundColor: Colors.blueSubtle,
+    backgroundColor: '#E8F5F3',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
   monthPillText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: Colors.blueAccent,
+    fontWeight: '800',
+    color: '#0C8A7D',
   },
   dueDateText: {
     fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textSecondary,
+    fontWeight: '600',
+    color: '#7E9596',
   },
   statusPill: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
-  pillSuccess: { backgroundColor: Colors.successLight },
-  pillWarning: { backgroundColor: Colors.warningLight },
-  pillDanger: { backgroundColor: Colors.dangerLight },
-  pillNeutral: { backgroundColor: Colors.borderLight },
-  statusText: { fontSize: 10, fontWeight: '700' },
-  textSuccess: { color: Colors.success },
-  textWarning: { color: Colors.warning },
-  textDanger: { color: Colors.danger },
-  textNeutral: { color: Colors.textMuted },
+  pillSuccess: { backgroundColor: '#D1FAE5' },
+  pillWarning: { backgroundColor: '#FEF3C7' },
+  pillDanger: { backgroundColor: '#FEE2E2' },
+  pillNeutral: { backgroundColor: '#F1F5F9' },
+  statusText: { fontSize: 10, fontWeight: '800' },
+  textSuccess: { color: '#065F46' },
+  textWarning: { color: '#92400E' },
+  textDanger: { color: '#991B1B' },
+  textNeutral: { color: '#64748B' },
   cardDivider: {
     height: 1,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: '#F0F5F5',
     marginVertical: 10,
   },
   rowDetails: {
@@ -278,14 +322,14 @@ const styles = StyleSheet.create({
   },
   colLabel: {
     fontSize: 10,
-    fontWeight: '600',
-    color: Colors.textSecondary,
+    fontWeight: '700',
+    color: '#7E9596',
     textTransform: 'uppercase',
   },
   colValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
-    color: Colors.text,
+    color: '#133336',
     marginTop: 2,
   },
 });

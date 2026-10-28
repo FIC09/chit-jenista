@@ -289,52 +289,14 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
     >
       <StatusBar barStyle="light-content" />
 
-      {/* 1. Deep Navy Premium Header (Reference Screen 1) */}
+      {/* 1. Clean Funds Genie Teal Header */}
       <View style={styles.navyHeader}>
-        {/* Brand bar with notification and profile avatar */}
-        <View style={styles.topBarRow}>
-          <View style={styles.brandGroup}>
-            <View style={styles.logoCircle}>
-              <Ionicons name="sparkles" size={16} color={Colors.gold.primary} />
-            </View>
-            <View>
-              <Text style={styles.brandTitleText}>Jenista</Text>
-              <Text style={styles.brandSubText}>Chit Funds</Text>
-            </View>
-          </View>
-
-          <View style={styles.headerRightActions}>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => navigation.navigate('Notifications')}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="notifications-outline" size={20} color={Colors.white} />
-              <View style={styles.notifBadge} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.userAvatarBtn}
-              onPress={() => navigation.navigate('Settings')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.userAvatarText}>{userInitials}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Greeting Banner */}
         <View style={styles.greetingRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.greetingSub}>Good Morning,</Text>
             <Text style={styles.greetingName}>{displayName}</Text>
             <Text style={styles.greetingTagline}>Your dreams, our support —</Text>
-          </View>
-
-          {/* Decorative Gold Coins / Pot Graphic Badge */}
-          <View style={styles.coinGraphicBox}>
-            <Ionicons name="wallet" size={32} color={Colors.gold.primary} />
-            <View style={styles.sparkleDot} />
           </View>
         </View>
       </View>
@@ -347,20 +309,17 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           onPress={() => navigation.navigate('Ledger')}
         >
           <View style={styles.fundCardContent}>
-            <View style={styles.fundIconCircle}>
-              <Ionicons name="wallet-outline" size={22} color={Colors.gold.dark} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.fundLabel}>Total Cumulative Fund</Text>
               <Text style={styles.fundAmount}>{formatCurrency(totalCollections)}</Text>
               <View style={styles.fundTrendRow}>
-                <Ionicons name="trending-up" size={14} color={Colors.success} />
+                <Ionicons name="trending-up" size={14} color="#0C8A7D" />
                 <Text style={styles.fundTrendText}>
                   +₹{Math.round(totalCollections * 0.08).toLocaleString('en-IN')} this month
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+            <Ionicons name="chevron-forward" size={20} color="#7E9596" />
           </View>
         </TouchableOpacity>
       </View>
@@ -390,7 +349,7 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           </View>
           <View style={styles.alertActionBtn}>
             <Text style={styles.alertActionBtnText}>Review</Text>
-            <Ionicons name="chevron-forward" size={14} color={Colors.white} />
+            <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
       )}
@@ -403,8 +362,8 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           activeOpacity={0.8}
           onPress={() => navigation.navigate('ChitGroupList')}
         >
-          <View style={[styles.metricIconWrap, { backgroundColor: '#FFF8EB' }]}>
-            <Ionicons name="people" size={18} color={Colors.gold.dark} />
+          <View style={[styles.metricIconWrap, { backgroundColor: '#E8F5F3' }]}>
+            <Ionicons name="people" size={18} color="#0C8A7D" />
           </View>
           <Text style={styles.metricTitle}>Total Groups</Text>
           <Text style={styles.metricValue}>{activeGroups}</Text>
@@ -417,8 +376,8 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           activeOpacity={0.8}
           onPress={() => navigation.navigate('CustomerList', { schemeFilter: 'FIXED' })}
         >
-          <View style={[styles.metricIconWrap, { backgroundColor: Colors.blueSubtle }]}>
-            <Ionicons name="person-add" size={18} color={Colors.blueAccent} />
+          <View style={[styles.metricIconWrap, { backgroundColor: '#EBF5FF' }]}>
+            <Ionicons name="person-add" size={18} color="#0284C7" />
           </View>
           <Text style={styles.metricTitle}>Fixed Enrollments</Text>
           <Text style={styles.metricValue}>{fixedEnrollments}</Text>
@@ -431,8 +390,8 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           activeOpacity={0.8}
           onPress={() => navigation.navigate('CustomerList', { schemeFilter: 'REGULAR' })}
         >
-          <View style={[styles.metricIconWrap, { backgroundColor: '#F0F9FF' }]}>
-            <Ionicons name="time-outline" size={18} color="#0284C7" />
+          <View style={[styles.metricIconWrap, { backgroundColor: '#F0FDF4' }]}>
+            <Ionicons name="time-outline" size={18} color="#16A34A" />
           </View>
           <Text style={styles.metricTitle}>Regular Enrollments</Text>
           <Text style={styles.metricValue}>{regularEnrollments}</Text>
@@ -445,8 +404,8 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           activeOpacity={0.8}
           onPress={() => navigation.navigate('CustomerList', { schemeFilter: 'AUCTION' })}
         >
-          <View style={[styles.metricIconWrap, { backgroundColor: Colors.purpleSubtle }]}>
-            <Ionicons name="hammer-outline" size={18} color={Colors.purpleAccent} />
+          <View style={[styles.metricIconWrap, { backgroundColor: '#FFFBEB' }]}>
+            <Ionicons name="hammer-outline" size={18} color="#D97706" />
           </View>
           <Text style={styles.metricTitle}>Auction Enrollments</Text>
           <Text style={styles.metricValue}>{auctionEnrollments}</Text>
@@ -481,8 +440,8 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           }}
           activeOpacity={0.7}
         >
-          <View style={[styles.actionIconCircle, { backgroundColor: '#FFF8EB' }]}>
-            <Ionicons name="add" size={22} color={Colors.gold.dark} />
+          <View style={[styles.actionIconCircle, { backgroundColor: '#E8F5F3' }]}>
+            <Ionicons name="add" size={22} color="#0C8A7D" />
           </View>
           <Text style={styles.actionTileText}>Add Group</Text>
         </TouchableOpacity>
@@ -492,8 +451,8 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           onPress={() => setIsEnrollModalOpen(true)}
           activeOpacity={0.7}
         >
-          <View style={[styles.actionIconCircle, { backgroundColor: '#F0FDF4' }]}>
-            <Ionicons name="person-add" size={20} color="#16A34A" />
+          <View style={[styles.actionIconCircle, { backgroundColor: '#E8F5F3' }]}>
+            <Ionicons name="person-add" size={20} color="#086359" />
           </View>
           <Text style={styles.actionTileText}>Add to Group</Text>
         </TouchableOpacity>
@@ -503,8 +462,8 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           onPress={() => navigation.navigate('AddCustomer')}
           activeOpacity={0.7}
         >
-          <View style={[styles.actionIconCircle, { backgroundColor: Colors.blueSubtle }]}>
-            <Ionicons name="person-add-outline" size={20} color={Colors.blueAccent} />
+          <View style={[styles.actionIconCircle, { backgroundColor: '#EBF5FF' }]}>
+            <Ionicons name="person-add-outline" size={20} color="#0284C7" />
           </View>
           <Text style={styles.actionTileText}>Add Member</Text>
         </TouchableOpacity>
@@ -514,8 +473,8 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           onPress={() => navigation.navigate('ReceiptEntry')}
           activeOpacity={0.7}
         >
-          <View style={[styles.actionIconCircle, { backgroundColor: Colors.successLight }]}>
-            <Ionicons name="card-outline" size={20} color={Colors.success} />
+          <View style={[styles.actionIconCircle, { backgroundColor: '#F0FDF4' }]}>
+            <Ionicons name="card-outline" size={20} color="#16A34A" />
           </View>
           <Text style={styles.actionTileText}>Payments</Text>
         </TouchableOpacity>
@@ -550,9 +509,9 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
                 >
                   <View style={[styles.verifyIconBubble, isAdv && { backgroundColor: '#FFFBEB' }]}>
                     <Ionicons
-                      name={isAdv ? 'star' : 'receipt-outline'}
+                      name="receipt-outline"
                       size={18}
-                      color={isAdv ? '#D97706' : Colors.navy.secondary}
+                      color={isAdv ? '#D97706' : '#0C8A7D'}
                     />
                   </View>
 
@@ -639,7 +598,7 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
               <Ionicons
                 name="chevron-forward"
                 size={18}
-                color={Colors.border}
+                color="#D8E4E5"
                 style={{ marginLeft: 6 }}
               />
             </TouchableOpacity>
@@ -1151,132 +1110,46 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#F9FBFB',
   },
 
-  // 1. Deep Navy Header
+  // 1. Teal Theme Header
   navyHeader: {
-    backgroundColor: Colors.navy.primary,
+    backgroundColor: '#0C8A7D',
     paddingTop: 16,
     paddingHorizontal: 20,
     paddingBottom: 40,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
-  },
-  topBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  brandGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  logoCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 191, 50, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 191, 50, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandTitleText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  brandSubText: {
-    color: Colors.gold.primary,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  headerRightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  notifBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: Colors.gold.primary,
-  },
-  userAvatarBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: Colors.navy.secondary,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 191, 50, 0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userAvatarText: {
-    color: Colors.gold.primary,
-    fontSize: 13,
-    fontWeight: '800',
+    shadowColor: '#0C8A7D',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 4,
   },
   greetingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 20,
+    paddingTop: 4,
   },
   greetingSub: {
-    color: Colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 13,
     fontWeight: '500',
   },
   greetingName: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '800',
     marginTop: 2,
     letterSpacing: 0.3,
   },
   greetingTagline: {
-    color: 'rgba(255, 255, 255, 0.65)',
+    color: 'rgba(255, 255, 255, 0.75)',
     fontSize: 12,
     fontWeight: '500',
     marginTop: 4,
-  },
-  coinGraphicBox: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 191, 50, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 191, 50, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  sparkleDot: {
-    position: 'absolute',
-    top: 8,
-    right: 10,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.gold.primary,
   },
 
   // 2. Overlapping Fund Card
@@ -1285,16 +1158,16 @@ const styles = StyleSheet.create({
     marginTop: -24,
   },
   fundCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 18,
-    shadowColor: Colors.navy.primary,
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: '#0C8A7D',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 3,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#D8E4E5',
   },
   fundCardContent: {
     flexDirection: 'row',
@@ -1304,19 +1177,19 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 14,
-    backgroundColor: Colors.gold.subtle,
+    backgroundColor: '#E8F5F3',
     borderWidth: 1,
-    borderColor: Colors.gold.light,
+    borderColor: '#C3E5E0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   fundLabel: {
-    color: Colors.textSecondary,
+    color: '#7E9596',
     fontSize: 12,
     fontWeight: '600',
   },
   fundAmount: {
-    color: Colors.text,
+    color: '#086359',
     fontSize: 24,
     fontWeight: '800',
     marginTop: 2,
@@ -1329,7 +1202,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   fundTrendText: {
-    color: Colors.success,
+    color: '#0C8A7D',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1344,21 +1217,21 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     width: '48%',
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#D8E4E5',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
-    elevation: 1,
+    elevation: 2,
   },
   metricIconWrap: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1366,18 +1239,18 @@ const styles = StyleSheet.create({
   },
   metricTitle: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: '#7E9596',
     fontWeight: '600',
   },
   metricValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: Colors.text,
+    color: '#133336',
     marginTop: 2,
   },
   metricSub: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: '#7E9596',
     fontWeight: '500',
     marginTop: 2,
   },
@@ -1395,7 +1268,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#D97706',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2,
   },
@@ -1419,7 +1292,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   alertBadgeText: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.3,
@@ -1441,7 +1314,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   alertActionBtnText: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -1457,26 +1330,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
     borderWidth: 1.5,
-    borderColor: Colors.surface,
+    borderColor: '#FFFFFF',
   },
   tileBadgeCountText: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '900',
   },
 
   // 4. Quick Actions
   quickActionsCard: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
     marginTop: 4,
     borderRadius: 20,
     paddingVertical: 18,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     justifyContent: 'space-around',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#D8E4E5',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -1485,26 +1358,26 @@ const styles = StyleSheet.create({
   },
   actionTile: {
     alignItems: 'center',
-    width: '18%',
+    width: '19%',
   },
   actionIconCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   actionTileText: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.text,
+    color: '#133336',
     textAlign: 'center',
   },
 
   // Verification Row Card
   verificationRowCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 14,
     flexDirection: 'row',
@@ -1521,14 +1394,14 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#E8F5F3',
     alignItems: 'center',
     justifyContent: 'center',
   },
   verifyCustName: {
     fontSize: 14,
     fontWeight: '800',
-    color: Colors.text,
+    color: '#133336',
   },
   advanceMiniBadge: {
     backgroundColor: '#FEF3C7',
@@ -1545,7 +1418,7 @@ const styles = StyleSheet.create({
   },
   verifyMeta: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: '#7E9596',
     marginTop: 2,
   },
   verifyAmount: {
@@ -1581,55 +1454,60 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.text,
+    color: '#086359',
     letterSpacing: 0.2,
   },
   sectionLink: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.navy.secondary,
+    color: '#0C8A7D',
   },
   listWrapper: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     gap: 10,
   },
   customerRowCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#D8E4E5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   avatarBubble: {
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: '#FFECC2',
+    backgroundColor: '#E8F5F3',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarBubbleText: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.gold.text,
+    color: '#0C8A7D',
   },
   custRowName: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.text,
+    color: '#133336',
   },
   custRowMeta: {
     fontSize: 11,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: '#7E9596',
     marginTop: 2,
   },
   custRowAmount: {
     fontSize: 14,
     fontWeight: '800',
-    color: Colors.text,
+    color: '#133336',
   },
   statusPillSmall: {
     paddingHorizontal: 8,
@@ -1638,31 +1516,36 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   pillPaid: {
-    backgroundColor: Colors.successLight,
+    backgroundColor: '#E8F5F3',
   },
   pillPending: {
-    backgroundColor: Colors.warningLight,
+    backgroundColor: '#FEF3C7',
   },
   statusPillTextSmall: {
     fontSize: 10,
     fontWeight: '700',
   },
   textPaid: {
-    color: Colors.success,
+    color: '#0C8A7D',
   },
   textPending: {
-    color: Colors.warning,
+    color: '#D97706',
   },
 
   // 6. Ledger Rows
   ledgerRowCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#D8E4E5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   txIconBox: {
     width: 38,
@@ -1674,12 +1557,12 @@ const styles = StyleSheet.create({
   txRowDesc: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.text,
+    color: '#133336',
   },
   txRowRef: {
     fontSize: 11,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: '#7E9596',
     marginTop: 2,
   },
   txRowAmount: {
@@ -1689,29 +1572,29 @@ const styles = StyleSheet.create({
   txRowMode: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: '#7E9596',
     marginTop: 2,
   },
 
   // 7. Add Group Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 22,
     width: '100%',
     maxWidth: 400,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#D8E4E5',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 10,
   },
@@ -1721,16 +1604,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: '#F0F5F5',
   },
   modalTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: Colors.text,
+    color: '#086359',
   },
   modalSubtitle: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: '#7E9596',
     marginTop: 4,
     lineHeight: 16,
   },
@@ -1744,30 +1627,30 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.textSecondary,
+    color: '#7E9596',
     letterSpacing: 0.6,
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F9FBFB',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#D8E4E5',
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text,
+    color: '#133336',
   },
   textInputReadOnly: {
-    backgroundColor: '#F1F5F9',
-    borderColor: '#CBD5E1',
-    color: Colors.textSecondary,
+    backgroundColor: '#F0F5F5',
+    borderColor: '#D8E4E5',
+    color: '#7E9596',
     fontWeight: '700',
   },
   helperText: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: '#7E9596',
     marginTop: 6,
   },
   schemeChipRow: {
@@ -1780,26 +1663,27 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: '#F8FAFC',
+    borderColor: '#D8E4E5',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
   },
   schemeChipActive: {
-    backgroundColor: '#FFF8EB',
-    borderColor: Colors.gold.primary,
+    backgroundColor: '#0C8A7D',
+    borderColor: '#0C8A7D',
   },
   schemeChipText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.textSecondary,
+    color: '#7E9596',
   },
   schemeChipTextActive: {
-    color: Colors.gold.dark,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   infoNoteBox: {
-    backgroundColor: '#FFFBF0',
+    backgroundColor: '#E8F5F3',
     borderWidth: 1,
-    borderColor: '#FDECD2',
+    borderColor: '#C3E5E0',
     borderRadius: 14,
     padding: 12,
     marginTop: 16,
@@ -1813,16 +1697,16 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.gold.primary,
+    backgroundColor: '#0C8A7D',
   },
   infoNoteTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: Colors.gold.dark,
+    color: '#086359',
   },
   infoNoteBody: {
     fontSize: 11,
-    color: '#8A5D1B',
+    color: '#0C8A7D',
     lineHeight: 16,
     marginTop: 4,
   },
@@ -1832,26 +1716,26 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: '#F0F5F5',
   },
   cancelBtn: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: '#F8FAFC',
+    borderColor: '#D8E4E5',
+    backgroundColor: '#FFFFFF',
   },
   cancelBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.textSecondary,
+    color: '#7E9596',
   },
   createBtn: {
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: Colors.gold.primary,
+    backgroundColor: '#0C8A7D',
   },
   createBtnDisabled: {
     opacity: 0.5,
@@ -1859,36 +1743,36 @@ const styles = StyleSheet.create({
   createBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: Colors.navy.primary,
+    color: '#FFFFFF',
   },
   itemPickerChip: {
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: '#F8FAFC',
+    borderColor: '#D8E4E5',
+    backgroundColor: '#FFFFFF',
   },
   itemPickerChipActive: {
-    backgroundColor: '#FFF8EB',
-    borderColor: Colors.gold.primary,
+    backgroundColor: '#0C8A7D',
+    borderColor: '#0C8A7D',
   },
   itemPickerChipText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.textSecondary,
+    color: '#7E9596',
   },
   itemPickerChipTextActive: {
-    color: Colors.gold.dark,
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   calculationPreviewBox: {
     marginTop: 14,
     padding: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F9FBFB',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#D8E4E5',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1896,15 +1780,15 @@ const styles = StyleSheet.create({
   calculationPreviewLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.textSecondary,
+    color: '#7E9596',
   },
   calculationPreviewValue: {
     fontSize: 14,
     fontWeight: '800',
-    color: Colors.navy.primary,
+    color: '#086359',
   },
 
-  // Search & Verification Styles (Exact Web Match)
+  // Search & Verification Styles
   searchRow: {
     flexDirection: 'row',
     gap: 8,
@@ -1913,9 +1797,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F9FBFB',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#D8E4E5',
     borderRadius: 14,
     paddingHorizontal: 12,
   },
@@ -1923,14 +1807,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     fontSize: 13,
-    color: Colors.text,
+    color: '#133336',
     fontWeight: '600',
   },
   searchClearBtn: {
     padding: 4,
   },
   searchActionBtn: {
-    backgroundColor: Colors.gold.dark,
+    backgroundColor: '#0C8A7D',
     paddingHorizontal: 14,
     borderRadius: 14,
     flexDirection: 'row',
@@ -1939,7 +1823,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   searchActionText: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -1963,9 +1847,9 @@ const styles = StyleSheet.create({
   verifiedCustomerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#E8F5F3',
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: '#C3E5E0',
     borderRadius: 14,
     padding: 12,
     marginTop: 10,
@@ -1974,19 +1858,17 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: '#0C8A7D',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#6EE7B7',
   },
   verifiedCustomerName: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#064E3B',
+    color: '#086359',
   },
   verifiedBadge: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: '#C3E5E0',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1994,11 +1876,11 @@ const styles = StyleSheet.create({
   verifiedBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#047857',
+    color: '#086359',
   },
   verifiedCustomerMeta: {
     fontSize: 11,
-    color: '#059669',
+    color: '#0C8A7D',
     fontWeight: '600',
     marginTop: 2,
   },
@@ -2006,36 +1888,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#C3E5E0',
   },
   changeCustomerText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#047857',
+    color: '#0C8A7D',
   },
   schemeSelectCard: {
     flex: 1,
     padding: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: '#F8FAFC',
+    borderColor: '#D8E4E5',
+    backgroundColor: '#FFFFFF',
   },
   schemeSelectCardActive: {
-    backgroundColor: '#FFF8EB',
-    borderColor: Colors.gold.primary,
+    backgroundColor: '#E8F5F3',
+    borderColor: '#0C8A7D',
   },
   schemeSelectTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: Colors.text,
+    color: '#133336',
   },
   schemeSelectTitleActive: {
-    color: Colors.gold.dark,
+    color: '#086359',
   },
   schemeSelectDesc: {
     fontSize: 9,
-    color: Colors.textMuted,
+    color: '#7E9596',
     marginTop: 2,
   },
   greenDotPulse: {
@@ -2048,32 +1932,32 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#E8F5F3',
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: '#C3E5E0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   verifyAvatarText: {
     fontSize: 18,
     fontWeight: '900',
-    color: Colors.gold.dark,
+    color: '#0C8A7D',
   },
   verifyNameText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Colors.text,
+    color: '#133336',
   },
   verifyMetaText: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: '#7E9596',
     marginTop: 2,
   },
   verifySummaryCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F9FBFB',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#D8E4E5',
     padding: 12,
     marginTop: 12,
     gap: 6,
@@ -2085,23 +1969,23 @@ const styles = StyleSheet.create({
   },
   verifyRowLabel: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: '#7E9596',
     fontWeight: '500',
   },
   verifyRowVal: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.text,
+    color: '#133336',
   },
   verifyPromptText: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: '#7E9596',
     textAlign: 'center',
     marginTop: 10,
     lineHeight: 14,
   },
   confirmVerifyBtn: {
-    backgroundColor: Colors.gold.dark,
+    backgroundColor: '#0C8A7D',
     paddingVertical: 11,
     borderRadius: 12,
     flexDirection: 'row',
@@ -2110,19 +1994,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   confirmVerifyText: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
   },
   cancelVerifyBtn: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F0F5F5',
     paddingVertical: 9,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelVerifyText: {
-    color: Colors.textSecondary,
+    color: '#7E9596',
     fontSize: 12,
     fontWeight: '700',
   },

@@ -134,3 +134,18 @@ export interface PaymentRequest {
   adminNotes?: string;
   approvedAt?: string;
 }
+
+export interface CustomerGoal {
+  id: string;
+  customerId: string;
+  title: string; // e.g. "Child's Education", "Child's Marriage", "Buy a Car", "House Construction"
+  category: 'EDUCATION' | 'MARRIAGE' | 'HOME' | 'VEHICLE' | 'WEALTH' | 'RETIREMENT' | 'BUSINESS' | 'OTHER';
+  targetAmount: number; // e.g. 500000 (5 Lac)
+  targetMonths: number; // e.g. 20 Months
+  savedAmount?: number; // e.g. 250000
+  completedMonths?: number; // e.g. 10
+  associatedGroupId?: string;
+  iconName?: string;
+  notes?: string;
+  createdAt: string;
+}

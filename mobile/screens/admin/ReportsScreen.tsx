@@ -167,7 +167,7 @@ export const ReportsScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
           <Text style={styles.heroSub}>{nonPayers.length} Members with pending installments</Text>
         </View>
         <TouchableOpacity style={styles.shareBtn} onPress={shareReport} activeOpacity={0.8}>
-          <Ionicons name="share-social" size={18} color="#0B1A30" />
+          <Ionicons name="share-social" size={18} color="#133336" />
           <Text style={styles.shareBtnText}>Share</Text>
         </TouchableOpacity>
       </View>
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   heroLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#F87171',
+    color: '#FFECC2',
     letterSpacing: 1,
   },
   heroAmount: {
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
   heroSub: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.85)',
     marginTop: 2,
   },
   shareBtn: {
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   shareBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0B1A30',
+    color: '#133336',
   },
   loader: {
     flex: 1,

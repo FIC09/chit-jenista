@@ -14,6 +14,7 @@ import {
   Linking,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +22,7 @@ import { Colors } from '../../theme/colors';
 import { useAuth } from '../../store/AuthContext';
 import { DataSyncManager } from '../../services/dataSync';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { CustomerChit } from '../../types';
+import { CustomerChit, CustomerGoal } from '../../types';
 import { secureStorage } from '../../services/storage';
 import { generateAndShareReceipt } from '../../services/receiptService';
 import {
@@ -78,6 +79,14 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // Savings Goals State (Funds Genie Custom Goals)
+  const [customerGoals, setCustomerGoals] = useState<CustomerGoal[]>([]);
+  const [showSetGoalModal, setShowSetGoalModal] = useState(false);
+  const [goalTitle, setGoalTitle] = useState('');
+  const [goalCategory, setGoalCategory] = useState<CustomerGoal['category']>('EDUCATION');
+  const [selectedChitForGoal, setSelectedChitForGoal] = useState<CustomerChit | null>(null);
+  const [goalSubmitting, setGoalSubmitting] = useState(false);
+
   // Scheme Schedules selected category state
   const [selectedRegularCat, setSelectedRegularCat] = useState<number>(100000);
   const [selectedFixedCat, setSelectedFixedCat] = useState<number>(100000);
@@ -109,13 +118,20 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
   const fetchCustomerProfile = async () => {
     try {
       if (!user) return;
-      const [allCustomers, banks, ledgerRaw, reqsList, wReqsList] = await Promise.all([
+      const [allCustomers, banks, ledgerRaw, reqsList, wReqsList, goalsList] = await Promise.all([
         DataSyncManager.getCustomers(),
         DataSyncManager.getBankAccounts(),
         secureStorage.getItem('synced_ledger'),
         DataSyncManager.getPaymentRequests(),
         DataSyncManager.getWithdrawalRequests(),
+        DataSyncManager.getCustomerGoals(user.id),
       ]);
+
+      if (goalsList && goalsList.length > 0) {
+        setCustomerGoals(goalsList);
+      } else {
+        setCustomerGoals([]);
+      }
 
       if (banks && banks.length > 0) {
         setAllCompanyBanks(banks);
@@ -202,10 +218,93 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
     fetchCustomerProfile();
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out of your account?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+          },
+        },
+      ]
+    );
+  };
+
   const copyToClipboard = (text: string, key: string) => {
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
     Alert.alert('Copied', `"${text}" copied to clipboard.`);
+  };
+
+  const handleSaveGoal = async () => {
+    if (!goalTitle.trim()) {
+      Alert.alert('Required', 'Please enter what you are saving for (e.g., Child’s Education, Marriage, House Construction).');
+      return;
+    }
+    if (!selectedChitForGoal) {
+      Alert.alert('Select Chit', 'Please select which active chit subscription is dedicated for this savings goal.');
+      return;
+    }
+
+    const chitVal = Number(selectedChitForGoal.chitValue) || 100000;
+    const durationM = Number(selectedChitForGoal.duration) || 20;
+
+    // Calculate real paid amount and completed months from ledger
+    const scheduleSummary = buildCustomerChitSchedule({
+      customer: customerRecord || user,
+      chit: selectedChitForGoal,
+      ledgerTransactions: transactions,
+    });
+
+    const savedAmt = scheduleSummary.totalPaidAmount || 0;
+    const completedM = scheduleSummary.completedMonthsCount || 0;
+
+    try {
+      setGoalSubmitting(true);
+      const newGoal = await DataSyncManager.saveCustomerGoal({
+        customerId: user?.id || 'customer',
+        title: goalTitle.trim(),
+        category: goalCategory,
+        targetAmount: chitVal,
+        targetMonths: durationM,
+        savedAmount: savedAmt,
+        completedMonths: completedM,
+        associatedGroupId: selectedChitForGoal.groupId,
+      });
+
+      setCustomerGoals((prev) => [newGoal, ...prev]);
+      setShowSetGoalModal(false);
+      setGoalTitle('');
+      setSelectedChitForGoal(null);
+      Alert.alert('Goal Created', `"${newGoal.title}" dedicated to ${selectedChitForGoal.groupName} has been saved!`);
+    } catch (e) {
+      Alert.alert('Error', 'Unable to save your goal right now. Please try again.');
+    } finally {
+      setGoalSubmitting(false);
+    }
+  };
+
+  const handleDeleteGoal = (goalId: string, title: string) => {
+    Alert.alert(
+      'Delete Goal',
+      `Are you sure you want to remove "${title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            await DataSyncManager.deleteCustomerGoal(goalId, user?.id || 'customer');
+            setCustomerGoals((prev) => prev.filter((g) => g.id !== goalId));
+          },
+        },
+      ]
+    );
   };
 
   // Payment Submission
@@ -380,91 +479,207 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
   }, [chits, pendingWithdrawals]);
 
   return (
-    <ScrollView
-      style={styles.container}
-      showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold.primary} />}
-    >
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold.primary} />}
+      >
+        <StatusBar barStyle="dark-content" />
 
-      {/* 1. Modern Redesigned Hero Section */}
-      <View style={styles.heroCard}>
-        {/* Top Header Row with Profile */}
-        <View style={styles.heroTop}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>
-              {(customerRecord?.name || user?.name || 'C').charAt(0).toUpperCase()}
-            </Text>
+        {/* 1. Top Brand & Profile Bar */}
+        <View style={styles.topProfileBar}>
+          <View style={styles.companyLogoBox}>
+            <Image
+              source={require('../../assets/Golden Tree Emblem Logo.png')}
+              style={styles.companyLogoImage}
+              resizeMode="contain"
+            />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.greetingSmall}>Welcome back,</Text>
-            <Text style={styles.clientName} numberOfLines={1}>{customerRecord?.name || user?.name || 'Valued Member'}</Text>
-            <Text style={styles.clientMeta}>
-              ID: {customerRecord?.id || user?.id} • {customerRecord?.phone || user?.phone || 'Customer'}
-            </Text>
+
+          <View style={styles.brandTitleBox}>
+            <Text style={styles.topBrandName}>Jenista Chits</Text>
           </View>
+
+          <View style={styles.topRightActions}>
+            <TouchableOpacity
+              style={styles.notifIconBtn}
+              onPress={() => navigation.navigate('Notifications')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="notifications-outline" size={20} color="#0C8A7D" />
+              <View style={styles.notifBadgeDot} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.logoutIconBtn}
+              onPress={handleLogout}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="log-out-outline" size={20} color="#DC2626" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+      {/* 2. Primary Mint-Teal Portfolio Summary Banner (Funds Genie Card 1) */}
+      <View style={styles.tealPortfolioCard}>
+        <View style={styles.portfolioTopRow}>
+          <View>
+            <Text style={styles.tealCardSmallLabel}>Total Chit Value</Text>
+            <View style={styles.tealCardAmountRow}>
+              <Text style={styles.tealCardMainAmount}>
+                {formatCurrency(chits.reduce((acc, c) => acc + Number(c.chitValue || 0), 0) || totalInvested)}
+              </Text>
+              <Ionicons name="arrow-up" size={18} color="#FFFFFF" style={{ marginLeft: 4 }} />
+            </View>
+          </View>
+
           <TouchableOpacity
-            style={styles.referralBtn}
-            onPress={() => copyToClipboard(`https://jenistachits.com/register?ref=${user?.id}`, 'ref-link')}
+            style={styles.seePortfolioPill}
+            onPress={() => navigation.navigate('CustomerPortfolio')}
+            activeOpacity={0.8}
           >
-            <Ionicons name="share-social-outline" size={14} color={Colors.gold.primary} />
-            <Text style={styles.referralBtnText}>Refer</Text>
+            <Text style={styles.seePortfolioText}>See my Portfolio</Text>
+            <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
-        {/* Hero Balance Banner */}
-        <View style={styles.heroBalanceBox}>
+        <View style={styles.tealCardDivider} />
+
+        <View style={styles.tealCardBottomRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.heroBalanceLabel}>TOTAL CHIT SAVINGS INVESTED</Text>
-            <Text style={styles.heroBalanceAmount}>{formatCurrency(totalInvested)}</Text>
-            <View style={styles.heroStatusPill}>
-              <View style={[styles.statusDot, { backgroundColor: pendingDues > 0 ? '#f59e0b' : '#10b981' }]} />
-              <Text style={styles.heroStatusText}>
-                {pendingDues > 0 ? `${formatCurrency(pendingDues)} Due this month` : 'All Current Dues Settle'}
+            <Text style={styles.tealCardSubLabel}>Invested Value</Text>
+            <Text style={styles.tealCardSubAmount}>{formatCurrency(totalInvested)}</Text>
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tealCardSubLabel}>Eligible Returns / Dues</Text>
+            <Text style={styles.tealCardSubAmountPositive}>
+              {pendingDues > 0 ? `-${formatCurrency(pendingDues)} Due` : `+${formatCurrency(totalWithdrawnAmount || totalInvested * 0.08)}`}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* 3. MY GOALS SECTION (Funds Genie Savings Purposes) */}
+      <View style={styles.goalsSection}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionHeaderTitle}>MY GOALS</Text>
+          <TouchableOpacity onPress={() => setShowSetGoalModal(true)} activeOpacity={0.7}>
+            <Text style={styles.sectionHeaderAction}>Set New Goal</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.goalsScrollContent}
+        >
+          {customerGoals.length > 0 ? (
+            customerGoals.map((goal, idx) => {
+              // Locate associated chit subscription if linked
+              const linkedChit = chits.find((c) => c.groupId === goal.associatedGroupId);
+              let target = goal.targetAmount || 100000;
+              let totalM = goal.targetMonths || 20;
+              let saved = goal.savedAmount || 0;
+              let completedM = goal.completedMonths || 0;
+
+              if (linkedChit) {
+                target = Number(linkedChit.chitValue) || target;
+                totalM = Number(linkedChit.duration) || totalM;
+                const scheduleSummary = buildCustomerChitSchedule({
+                  customer: customerRecord || user,
+                  chit: linkedChit,
+                  ledgerTransactions: transactions,
+                });
+                saved = scheduleSummary.totalPaidAmount;
+                completedM = scheduleSummary.completedMonthsCount;
+              }
+
+              const progressPct = Math.min(100, Math.round(target > 0 ? (saved / target) * 100 : 0));
+              const targetLac = (target / 100000).toFixed(1);
+              const savedLac = (saved / 100000).toFixed(1);
+
+              const getGoalIcon = (cat: string) => {
+                switch (cat) {
+                  case 'EDUCATION':
+                    return 'school-outline';
+                  case 'MARRIAGE':
+                    return 'heart-outline';
+                  case 'HOME':
+                    return 'home-outline';
+                  case 'VEHICLE':
+                    return 'car-sport-outline';
+                  case 'WEALTH':
+                    return 'trending-up-outline';
+                  case 'BUSINESS':
+                    return 'briefcase-outline';
+                  case 'RETIREMENT':
+                    return 'shield-checkmark-outline';
+                  default:
+                    return 'ribbon-outline';
+                }
+              };
+
+              return (
+                <TouchableOpacity
+                  key={goal.id || idx}
+                  style={styles.goalCard}
+                  onLongPress={() => handleDeleteGoal(goal.id, goal.title)}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.goalCardTop}>
+                    <View style={{ flex: 1, paddingRight: 4 }}>
+                      <Text style={styles.goalCardTitle} numberOfLines={1}>{goal.title}</Text>
+                      <Text style={styles.goalCardScheme}>
+                        {goal.category} GOAL
+                      </Text>
+                    </View>
+                    <View style={styles.goalIconCircle}>
+                      <Ionicons
+                        name={getGoalIcon(goal.category) as any}
+                        size={18}
+                        color="#0C8A7D"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.goalProgressWrap}>
+                    <Text style={styles.goalValText}>
+                      {savedLac} / {targetLac} Lac
+                    </Text>
+                    <View style={styles.goalProgressBarTrack}>
+                      <View style={[styles.goalProgressBarFill, { width: `${progressPct}%` }]} />
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, alignItems: 'center' }}>
+                      <Text style={styles.goalDurationText}>
+                        {completedM} / {totalM} Months
+                      </Text>
+                      <Text style={[styles.goalDurationText, { color: '#0C8A7D', fontWeight: '700' }]}>
+                        {progressPct}%
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          ) : (
+            <TouchableOpacity
+              style={[styles.goalCard, { alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed' }]}
+              onPress={() => setShowSetGoalModal(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle-outline" size={32} color="#0C8A7D" />
+              <Text style={{ fontSize: 13, fontWeight: '800', color: '#0C8A7D', marginTop: 6 }}>Set Your First Goal</Text>
+              <Text style={{ fontSize: 10, color: '#7E9596', textAlign: 'center', marginTop: 2 }}>
+                e.g. Child's Education, Home, Marriage
               </Text>
-            </View>
-          </View>
-          <View style={styles.walletIconBubble}>
-            <Ionicons name="wallet-outline" size={28} color={Colors.gold.primary} />
-          </View>
-        </View>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
       </View>
 
-      {/* 4-Stat Metric Cards Grid */}
-      <View style={styles.metricsGrid}>
-        <View style={styles.metricBox}>
-          <View style={styles.metricIconHeader}>
-            <Ionicons name="layers-outline" size={15} color={Colors.primary[600]} />
-            <Text style={styles.metricLabel}>ACTIVE CHITS</Text>
-          </View>
-          <Text style={styles.metricVal}>{chits.length}</Text>
-        </View>
-        <View style={styles.metricBox}>
-          <View style={styles.metricIconHeader}>
-            <Ionicons name="trending-up-outline" size={15} color="#059669" />
-            <Text style={styles.metricLabel}>INVESTED</Text>
-          </View>
-          <Text style={[styles.metricVal, styles.metricValInvested]}>{formatCurrency(totalInvested)}</Text>
-        </View>
-        <View style={styles.metricBox}>
-          <View style={styles.metricIconHeader}>
-            <Ionicons name="trophy-outline" size={15} color={Colors.gold.dark} />
-            <Text style={styles.metricLabel}>WITHDRAWN</Text>
-          </View>
-          <Text style={[styles.metricVal, styles.metricValGold]}>{formatCurrency(totalWithdrawnAmount)}</Text>
-        </View>
-        <View style={styles.metricBox}>
-          <View style={styles.metricIconHeader}>
-            <Ionicons name="time-outline" size={15} color={pendingDues > 0 ? '#dc2626' : '#059669'} />
-            <Text style={styles.metricLabel}>NEXT DUE</Text>
-          </View>
-          <Text style={[styles.metricVal, pendingDues > 0 ? { color: '#dc2626' } : { color: '#059669' }]}>
-            {formatCurrency(pendingDues > 0 ? pendingDues : chits[0]?.monthlyInstallment || 0)}
-          </Text>
-        </View>
-      </View>
-
-      {/* 2. Web-Style Segment Tabs Bar */}
+      {/* 4. Web-Style Segment Tabs Bar */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -479,7 +694,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
           <Ionicons
             name="layers"
             size={15}
-            color={activeTab === 'myChits' ? Colors.gold.dark : Colors.textSecondary}
+            color={activeTab === 'myChits' ? '#FFFFFF' : '#7E9596'}
           />
           <Text style={[styles.tabButtonText, activeTab === 'myChits' && styles.tabButtonTextActive]}>
             My Portfolio
@@ -494,7 +709,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
           <Ionicons
             name="calendar"
             size={15}
-            color={activeTab === 'regularPlan' ? Colors.gold.dark : Colors.textSecondary}
+            color={activeTab === 'regularPlan' ? '#FFFFFF' : '#7E9596'}
           />
           <Text style={[styles.tabButtonText, activeTab === 'regularPlan' && styles.tabButtonTextActive]}>
             Regular (20M)
@@ -509,7 +724,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
           <Ionicons
             name="grid"
             size={15}
-            color={activeTab === 'fixedPlan' ? Colors.gold.dark : Colors.textSecondary}
+            color={activeTab === 'fixedPlan' ? '#FFFFFF' : '#7E9596'}
           />
           <Text style={[styles.tabButtonText, activeTab === 'fixedPlan' && styles.tabButtonTextActive]}>
             Fixed (20M)
@@ -524,7 +739,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
           <Ionicons
             name="hammer"
             size={15}
-            color={activeTab === 'auctionPlan' ? Colors.gold.dark : Colors.textSecondary}
+            color={activeTab === 'auctionPlan' ? '#FFFFFF' : '#7E9596'}
           />
           <Text style={[styles.tabButtonText, activeTab === 'auctionPlan' && styles.tabButtonTextActive]}>
             Auction (20M)
@@ -799,34 +1014,39 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
             </View>
           </View>
 
-          {/* Recent Transactions List with Print Receipt */}
-          <View style={{ paddingHorizontal: 16 }}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Receipts ({transactions.length})</Text>
+          {/* MY RECENT TRANSACTIONS - Funds Genie Table Style */}
+          <View style={styles.transactionsContainer}>
+            <View style={styles.recentTransactionsHeader}>
+              <Text style={styles.recentSectionTitle}>MY RECENT TRANSACTIONS</Text>
               <TouchableOpacity onPress={() => setShowStatementsModal(true)}>
-                <Text style={styles.viewAllText}>View All</Text>
+                <Text style={styles.recentMoreLink}>More</Text>
               </TouchableOpacity>
             </View>
 
-            {transactions.length === 0 ? (
-              <View style={styles.emptyCardSmall}>
-                <Text style={{ fontSize: 12, color: Colors.textMuted }}>No transactions recorded yet.</Text>
+            <View style={styles.trxTableCard}>
+              <View style={styles.trxTableHeader}>
+                <Text style={[styles.trxThText, { width: 75 }]}>Date</Text>
+                <Text style={[styles.trxThText, { flex: 1 }]}>Scheme</Text>
+                <Text style={[styles.trxThText, { width: 85, textAlign: 'right' }]}>Amount</Text>
+                <Text style={[styles.trxThText, { width: 44, textAlign: 'center' }]}></Text>
               </View>
-            ) : (
-              transactions.slice(0, 5).map((t, idx) => (
-                <View key={idx} style={styles.trxRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.trxTitle} numberOfLines={1}>
-                      {t.description || 'Chit Installment Payment'}
-                    </Text>
-                    <Text style={styles.trxMeta}>
-                      {formatDate(t.date)} • Ref: {t.id}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                    <Text style={styles.trxAmount}>+{formatCurrency(t.amount)}</Text>
+
+              {transactions.length === 0 ? (
+                <View style={styles.emptyCardSmall}>
+                  <Text style={{ fontSize: 12, color: '#7E9596' }}>No transactions recorded yet.</Text>
+                </View>
+              ) : (
+                transactions.slice(0, 5).map((t, idx) => (
+                  <View key={idx} style={styles.trxTableRow}>
+                    <Text style={styles.trxColDate}>{formatDate(t.date).slice(0, 6)}</Text>
+                    <View style={{ flex: 1, paddingRight: 6 }}>
+                      <Text style={styles.trxColScheme} numberOfLines={1}>
+                        {t.description || 'Chit Installment'}
+                      </Text>
+                    </View>
+                    <Text style={styles.trxColAmount}>+{formatCurrency(t.amount)}</Text>
                     <TouchableOpacity
-                      style={styles.printReceiptBtn}
+                      style={styles.trxPrintIconBtn}
                       onPress={() =>
                         generateAndShareReceipt({
                           receiptNo: t.id,
@@ -839,15 +1059,14 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
                           referenceNo: t.reference,
                         })
                       }
-                      activeOpacity={0.8}
+                      activeOpacity={0.7}
                     >
-                      <Ionicons name="print-outline" size={11} color={Colors.navy.primary} />
-                      <Text style={styles.printReceiptText}>Receipt</Text>
+                      <Ionicons name="receipt-outline" size={15} color="#0C8A7D" />
                     </TouchableOpacity>
                   </View>
-                </View>
-              ))
-            )}
+                ))
+              )}
+            </View>
           </View>
         </View>
       )}
@@ -1424,219 +1643,417 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
         </Modal>
       )}
 
+      {/* 8. MODAL: SET NEW SAVINGS GOAL (Funds Genie Goals) */}
+      {showSetGoalModal && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setShowSetGoalModal(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { maxHeight: '90%' }]}>
+              <View style={styles.modalHeader}>
+                <View>
+                  <Text style={styles.modalTitle}>Set New Savings Goal</Text>
+                  <Text style={styles.modalSubtitle}>What purpose are you saving your chits for?</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowSetGoalModal(false)}>
+                  <Ionicons name="close" size={22} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                {/* Goal Title */}
+                <Text style={styles.inputLabel}>WHAT ARE YOU SAVING FOR?</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="e.g. Child's Higher Education, Daughter's Marriage"
+                  placeholderTextColor="#94A3B8"
+                  value={goalTitle}
+                  onChangeText={setGoalTitle}
+                />
+
+                {/* Category Preset Pills */}
+                <Text style={[styles.inputLabel, { marginTop: 14 }]}>CATEGORY</Text>
+                <View style={styles.goalCategoryPillsRow}>
+                  {[
+                    { label: 'Education', val: 'EDUCATION', icon: 'school-outline' },
+                    { label: 'Marriage', val: 'MARRIAGE', icon: 'heart-outline' },
+                    { label: 'Dream Home', val: 'HOME', icon: 'home-outline' },
+                    { label: 'Vehicle', val: 'VEHICLE', icon: 'car-sport-outline' },
+                    { label: 'Wealth', val: 'WEALTH', icon: 'trending-up-outline' },
+                    { label: 'Business', val: 'BUSINESS', icon: 'briefcase-outline' },
+                    { label: 'Retirement', val: 'RETIREMENT', icon: 'shield-checkmark-outline' },
+                  ].map((catItem) => (
+                    <TouchableOpacity
+                      key={catItem.val}
+                      style={[
+                        styles.goalCatPill,
+                        goalCategory === catItem.val && styles.goalCatPillActive,
+                      ]}
+                      onPress={() => {
+                        setGoalCategory(catItem.val as any);
+                        if (!goalTitle || ['Education', 'Marriage', 'Home', 'Vehicle', 'Wealth', 'Business', 'Retirement'].some(s => goalTitle.toLowerCase().includes(s.toLowerCase()))) {
+                          setGoalTitle(
+                            catItem.val === 'EDUCATION' ? "Child's Education" :
+                            catItem.val === 'MARRIAGE' ? "Family Marriage" :
+                            catItem.val === 'HOME' ? "New House Construction" :
+                            catItem.val === 'VEHICLE' ? "Buy New Car / Bike" :
+                            catItem.val === 'BUSINESS' ? "Business Growth Fund" :
+                            catItem.val === 'RETIREMENT' ? "Retirement Nest Egg" : "Wealth Accumulation"
+                          );
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons
+                        name={catItem.icon as any}
+                        size={13}
+                        color={goalCategory === catItem.val ? '#FFFFFF' : '#0C8A7D'}
+                      />
+                      <Text
+                        style={[
+                          styles.goalCatPillText,
+                          goalCategory === catItem.val && styles.goalCatPillTextActive,
+                        ]}
+                      >
+                        {catItem.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Select Dedicated Chit Subscription */}
+                <Text style={[styles.inputLabel, { marginTop: 14 }]}>DEDICATE ACTIVE CHIT SUBSCRIPTION</Text>
+                {(() => {
+                  // Exclude chits already assigned to an existing savings goal
+                  const availableChits = chits.filter(
+                    (c) => !customerGoals.some((g) => g.associatedGroupId === c.groupId)
+                  );
+
+                  if (availableChits.length === 0) {
+                    return (
+                      <View style={{ backgroundColor: '#FEF3C7', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#FDE68A', marginTop: 4 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#92400E' }}>
+                          All Enrolled Chits Already Have Assigned Goals
+                        </Text>
+                        <Text style={{ fontSize: 11, color: '#B45309', marginTop: 3 }}>
+                          Every active chit in your portfolio is currently linked to a dedicated savings purpose. Join a new chit group or remove an existing goal to link a new one.
+                        </Text>
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <View style={{ gap: 8, marginTop: 4 }}>
+                      {availableChits.map((item) => {
+                        const isSelected = selectedChitForGoal?.groupId === item.groupId;
+                        const chitVal = Number(item.chitValue) || 100000;
+                        const durationM = Number(item.duration) || 20;
+
+                        return (
+                          <TouchableOpacity
+                            key={item.groupId}
+                            style={[
+                              styles.chitSelectOptionCard,
+                              isSelected && styles.chitSelectOptionCardActive,
+                            ]}
+                            onPress={() => setSelectedChitForGoal(item)}
+                            activeOpacity={0.8}
+                          >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <View style={{ flex: 1, paddingRight: 8 }}>
+                                <Text style={[styles.chitSelectTitle, isSelected && styles.chitSelectTitleActive]}>
+                                  {item.groupName}
+                                </Text>
+                                <Text style={styles.chitSelectMeta}>
+                                  Ticket #{item.ticketNumber} • {item.scheme || 'Auction'} Plan
+                                </Text>
+                              </View>
+                              <View style={{ alignItems: 'flex-end' }}>
+                                <Text style={[styles.chitSelectVal, isSelected && { color: '#0C8A7D' }]}>
+                                  {formatCurrency(chitVal)}
+                                </Text>
+                                <Text style={styles.chitSelectDuration}>
+                                  {durationM} Months
+                                </Text>
+                              </View>
+                            </View>
+
+                            {isSelected && (
+                              <View style={styles.chitSelectedCheckRow}>
+                                <Ionicons name="checkmark-circle" size={16} color="#0C8A7D" />
+                                <Text style={styles.chitSelectedCheckText}>
+                                  Goal Target: {formatCurrency(chitVal)} across {durationM} Months
+                                </Text>
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  );
+                })()}
+
+                <TouchableOpacity
+                  style={[
+                    styles.submitActionBtn,
+                    { marginTop: 22 },
+                    (!selectedChitForGoal || goalSubmitting) && { opacity: 0.6 },
+                  ]}
+                  onPress={handleSaveGoal}
+                  disabled={!selectedChitForGoal || goalSubmitting}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.submitActionBtnText}>
+                    {goalSubmitting ? 'Saving Goal...' : 'Link Chit & Save Goal'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       <View style={{ height: 40 }} />
     </ScrollView>
+  </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F9FBFB',
+  },
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#F9FBFB',
   },
-  heroCard: {
-    backgroundColor: Colors.navy.primary,
-    margin: 16,
-    borderRadius: 22,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    shadowColor: Colors.navy.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  heroTop: {
+  topProfileBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 14,
   },
-  notifBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  companyLogoBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFF9ED',
+    borderWidth: 1.5,
+    borderColor: '#FEE8BA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  companyLogoImage: {
+    width: 32,
+    height: 32,
+  },
+  brandTitleBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  topBrandName: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#086359',
+    letterSpacing: -0.3,
+  },
+  topRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  notifIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D2EBE6',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   notifBadgeDot: {
     position: 'absolute',
-    top: 6,
-    right: 7,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ef4444',
-    borderWidth: 1.5,
-    borderColor: Colors.navy.primary,
-  },
-  referralBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(217, 119, 6, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(217, 119, 6, 0.4)',
-  },
-  referralBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.gold.primary,
-  },
-  hamburgerBtn: {
-    padding: 6,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  greetingSmall: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontWeight: '500',
-  },
-  avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: Colors.gold.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#0B1A30',
-  },
-  clientName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.white,
-  },
-  clientMeta: {
-    fontSize: 11,
-    color: Colors.neutral[400],
-    marginTop: 1,
-  },
-  heroBalanceBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    marginTop: 18,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  heroBalanceLabel: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  heroBalanceAmount: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: Colors.gold.primary,
-    marginTop: 4,
-  },
-  heroStatusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 6,
-  },
-  statusDot: {
+    top: 8,
+    right: 9,
     width: 7,
     height: 7,
     borderRadius: 4,
+    backgroundColor: '#DC4545',
   },
-  heroStatusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  walletIconBubble: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+  logoutIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickActionsRow: {
+  tealPortfolioCard: {
+    backgroundColor: '#0C8A7D',
+    marginHorizontal: 16,
+    marginBottom: 18,
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: '#0C8A7D',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  portfolioTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'flex-start',
   },
-  quickActionItem: {
+  tealCardSmallLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '600',
+  },
+  tealCardAmountRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    flex: 1,
+    marginTop: 4,
   },
-  actionIconCircle: {
-    width: 42,
-    height: 42,
+  tealCardMainAmount: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  seePortfolioPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  seePortfolioText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  tealCardDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginVertical: 14,
+  },
+  tealCardBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  tealCardSubLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.75)',
+    fontWeight: '500',
+  },
+  tealCardSubAmount: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  tealCardSubAmountPositive: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFECC2',
+    marginTop: 2,
+  },
+  goalsSection: {
+    marginBottom: 18,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    marginBottom: 10,
+  },
+  sectionHeaderTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#7E9596',
+    letterSpacing: 0.5,
+  },
+  sectionHeaderAction: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0C8A7D',
+  },
+  goalsScrollContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  goalCard: {
+    width: 175,
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#D8E4E5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  goalCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  goalCardTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#133336',
+  },
+  goalCardScheme: {
+    fontSize: 10,
+    color: '#7E9596',
+    marginTop: 2,
+  },
+  goalIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E8F5F3',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionItemText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.85)',
+  goalProgressWrap: {
+    marginTop: 12,
   },
-  metricIconHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
+  goalValText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#133336',
+    marginBottom: 6,
   },
-  metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    paddingHorizontal: 16,
-    marginBottom: 16,
+  goalProgressBarTrack: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#E8F5F3',
+    overflow: 'hidden',
   },
-  metricBox: {
-    flex: 1,
-    minWidth: '47%',
-    backgroundColor: Colors.white,
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+  goalProgressBarFill: {
+    height: '100%',
+    backgroundColor: '#0C8A7D',
+    borderRadius: 3,
   },
-  metricLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.textMuted,
-    letterSpacing: 0.3,
-  },
-  metricVal: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: Colors.text,
-    marginTop: 4,
-  },
-  metricValInvested: {
-    color: '#059669',
-  },
-  metricValGold: {
-    color: Colors.gold.dark,
+  goalDurationText: {
+    fontSize: 10,
+    color: '#7E9596',
+    marginTop: 6,
+    fontWeight: '500',
   },
   tabsScroll: {
     marginBottom: 14,
@@ -1648,24 +2065,25 @@ const styles = StyleSheet.create({
   tabButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#D8E4E5',
   },
   tabButtonActive: {
-    backgroundColor: Colors.navy.primary,
-    borderColor: Colors.navy.primary,
+    backgroundColor: '#0C8A7D',
+    borderColor: '#0C8A7D',
   },
   tabButtonText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: '#7E9596',
   },
   tabButtonTextActive: {
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   pendingVerifyBanner: {
     flexDirection: 'row',
@@ -1748,11 +2166,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   chitCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#D8E4E5',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -1767,11 +2185,11 @@ const styles = StyleSheet.create({
   groupTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#086359',
   },
   ticketSubtitle: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#7E9596',
     marginTop: 2,
   },
   chitProgressBox: {
@@ -1792,8 +2210,8 @@ const styles = StyleSheet.create({
   dueDateBadge: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0284c7',
-    backgroundColor: '#e0f2fe',
+    color: '#0C8A7D',
+    backgroundColor: '#E8F5F3',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -1801,16 +2219,16 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#E8F5F3',
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.primary[600],
+    backgroundColor: '#0C8A7D',
     borderRadius: 3,
   },
   activePlanBadge: {
-    backgroundColor: '#dcfce7',
+    backgroundColor: '#E8F5F3',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -1818,24 +2236,24 @@ const styles = StyleSheet.create({
   activePlanText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#15803d',
+    color: '#086359',
   },
   currentMonthPaidBadge: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: '#E8F5F3',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#a7f3d0',
+    borderColor: '#D2EBE6',
   },
   currentMonthPaidBadgeText: {
     fontSize: 9,
     fontWeight: '900',
-    color: '#065f46',
+    color: '#086359',
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#E8F5F3',
     marginVertical: 12,
   },
   statsRow: {
@@ -1845,13 +2263,13 @@ const styles = StyleSheet.create({
   subLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94a3b8',
+    color: '#7E9596',
     letterSpacing: 0.5,
   },
   mainVal: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#133336',
     marginTop: 2,
   },
   cardActionRow: {
@@ -1861,7 +2279,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: '#E8F5F3',
   },
   payNowBtn: {
     flex: 1,
@@ -1869,14 +2287,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: Colors.navy.primary,
+    backgroundColor: '#0C8A7D',
     paddingVertical: 8,
     borderRadius: 8,
   },
   payNowBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   scheduleBtn: {
     flexDirection: 'row',
@@ -1969,12 +2387,12 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   bankCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#D8E4E5',
   },
   bankTopRow: {
     flexDirection: 'row',
@@ -1986,40 +2404,42 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#fef3c7',
+    backgroundColor: '#E8F5F3',
     alignItems: 'center',
     justifyContent: 'center',
   },
   bankCardTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#133336',
   },
   bankCardSub: {
     fontSize: 11,
-    color: '#64748b',
+    color: '#7E9596',
   },
   viewQrPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#E8F5F3',
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#D2EBE6',
   },
   viewQrPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.navy.primary,
+    color: '#0C8A7D',
   },
   bankGrid: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F7FBFA',
     padding: 12,
     borderRadius: 12,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#E8F5F3',
   },
   bankDetailItem: {
     flexDirection: 'row',
@@ -2029,31 +2449,103 @@ const styles = StyleSheet.create({
   bLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#7E9596',
   },
   bVal: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#133336',
   },
   bValMono: {
     fontSize: 12,
     fontWeight: '700',
     fontFamily: 'monospace',
-    color: '#0f172a',
+    color: '#133336',
   },
   bValGold: {
     fontSize: 12,
     fontWeight: '800',
-    color: Colors.primary[700],
+    color: '#0C8A7D',
+  },
+  transactionsContainer: {
+    paddingHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 20,
+  },
+  recentTransactionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  recentSectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#7E9596',
+    letterSpacing: 0.6,
+  },
+  recentMoreLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0C8A7D',
+  },
+  trxTableCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#D8E4E5',
+    overflow: 'hidden',
+  },
+  trxTableHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5F3',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  trxThText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#086359',
+  },
+  trxTableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F5F5',
+  },
+  trxColDate: {
+    width: 75,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#7E9596',
+  },
+  trxColScheme: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#133336',
+  },
+  trxColAmount: {
+    width: 85,
+    textAlign: 'right',
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0C8A7D',
+  },
+  trxPrintIconBtn: {
+    width: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   receiptsCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#D8E4E5',
   },
   trxRow: {
     flexDirection: 'row',
@@ -2065,33 +2557,33 @@ const styles = StyleSheet.create({
   trxTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: Colors.text,
+    color: '#133336',
   },
   trxMeta: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: '#7E9596',
     marginTop: 2,
   },
   trxAmount: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#059669',
+    color: '#0C8A7D',
   },
   printReceiptBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#E8F5F3',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#D2EBE6',
   },
   printReceiptText: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.navy.primary,
+    color: '#0C8A7D',
   },
   viewAllBtn: {
     alignItems: 'center',
@@ -2305,7 +2797,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   submitActionBtn: {
-    backgroundColor: Colors.navy.primary,
+    backgroundColor: '#0C8A7D',
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
@@ -2315,49 +2807,49 @@ const styles = StyleSheet.create({
   submitActionBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   filterPill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#D8E4E5',
   },
   filterPillActive: {
-    backgroundColor: Colors.navy.primary,
-    borderColor: Colors.navy.primary,
+    backgroundColor: '#0C8A7D',
+    borderColor: '#0C8A7D',
   },
   filterPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: '#7E9596',
   },
   filterPillTextActive: {
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   statementItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#F0F5F5',
   },
   statementItemTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: Colors.text,
+    color: '#133336',
   },
   statementItemMeta: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: '#7E9596',
     marginTop: 2,
   },
   statementItemAmount: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#059669',
+    color: '#0C8A7D',
   },
   qrImageBox: {
     alignItems: 'center',
@@ -2458,6 +2950,118 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: '#fee2e2',
+  },
+  goalCategoryPillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  goalCatPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: '#E8F5F3',
+    borderWidth: 1,
+    borderColor: '#D2EBE6',
+  },
+  goalCatPillActive: {
+    backgroundColor: '#0C8A7D',
+    borderColor: '#0C8A7D',
+  },
+  goalCatPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0C8A7D',
+  },
+  goalCatPillTextActive: {
+    color: '#FFFFFF',
+  },
+  quickAmtPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  quickAmtPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  quickMonthPill: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  quickMonthPillActive: {
+    backgroundColor: '#0C8A7D',
+    borderColor: '#0C8A7D',
+  },
+  quickMonthPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  quickMonthPillTextActive: {
+    color: '#FFFFFF',
+  },
+  chitSelectOptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  chitSelectOptionCardActive: {
+    backgroundColor: '#E8F5F3',
+    borderColor: '#0C8A7D',
+  },
+  chitSelectTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  chitSelectTitleActive: {
+    color: '#086359',
+  },
+  chitSelectMeta: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  chitSelectVal: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  chitSelectDuration: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  chitSelectedCheckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(12, 138, 125, 0.2)',
+  },
+  chitSelectedCheckText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0C8A7D',
   },
 });
 

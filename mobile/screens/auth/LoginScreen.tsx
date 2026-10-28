@@ -42,12 +42,12 @@ export const LoginScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const [activeField, setActiveField] = useState<'mobile' | 'pass' | null>(null);
+  const [authRole, setAuthRole] = useState<'CUSTOMER' | 'ADMIN_STAFF'>('CUSTOMER');
 
   const handleLogin = async () => {
     const trimmedInput = mobileNumber.trim();
     if (!trimmedInput) {
-      setError('Please enter your mobile number');
+      setError(authRole === 'CUSTOMER' ? 'Please enter your mobile number' : 'Please enter username or staff ID');
       return;
     }
     if (!password.trim()) {
@@ -59,27 +59,23 @@ export const LoginScreen: React.FC = () => {
     setError('');
 
     try {
-      const lower = trimmedInput.toLowerCase();
-
-      // If user typed admin/staff credentials or username
-      if (lower === 'admin' || lower === 'staff') {
+      if (authRole === 'ADMIN_STAFF') {
         await loginAsAdminOrStaff(trimmedInput, password);
         return;
       }
 
-      // First attempt customer login (matches registered phone or customer code)
+      // Customer login attempt
       try {
         await loginAsCustomer(trimmedInput, password);
         return;
       } catch (custErr: any) {
-        // If customer wasn't found or failed, attempt admin/staff login seamlessly
-        try {
+        // Fallback: if user typed admin/staff credentials
+        const lower = trimmedInput.toLowerCase();
+        if (lower === 'admin' || lower === 'staff') {
           await loginAsAdminOrStaff(trimmedInput, password);
           return;
-        } catch {
-          // Throw the appropriate error message
-          throw custErr;
         }
+        throw custErr;
       }
     } catch (err: any) {
       setError(err.message || 'Login failed. Please verify credentials.');
@@ -91,136 +87,127 @@ export const LoginScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="always"
-          keyboardDismissMode="none"
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
-          {/* Centered Credential Content Box */}
-          <View style={styles.centerContainer}>
-            {/* Brand Header */}
-            <View style={styles.brandContainer}>
-              <View style={styles.logoBadge}>
-                <Image
-                  source={require('../../assets/Golden Tree Emblem Logo.png')}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
+        {/* Centered Credential Content Box */}
+        <View style={styles.centerContainer}>
+          {/* Brand Header */}
+          <View style={styles.brandContainer}>
+            <View style={styles.logoBadge}>
+              <Image
+                source={require('../../assets/Golden Tree Emblem Logo.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.brandTitle}>Jenista Chits</Text>
+            <Text style={styles.brandTagline}>
+              {authRole === 'CUSTOMER'
+                ? 'Smart Member & Chit Portfolio Portal'
+                : 'Admin & Staff Management Portal'}
+            </Text>
+          </View>
+
+          {/* Form Container */}
+          <View style={styles.formContainer}>
+            {/* Error Message */}
+            {!!error && (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle-outline" size={18} color={THEME.danger} />
+                <Text style={styles.errorMessage}>{error}</Text>
               </View>
-              <Text style={styles.brandTitle}>Jenista Chits</Text>
-              <Text style={styles.brandTagline}>Smart Member & Chit Portfolio Portal</Text>
+            )}
+
+            {/* Input 1: Identifier */}
+            <View style={styles.inputBox}>
+              <TextInput
+                placeholder={authRole === 'CUSTOMER' ? 'Mobile Number' : 'Username / Staff ID'}
+                placeholderTextColor={THEME.textMuted}
+                keyboardType={authRole === 'CUSTOMER' ? 'phone-pad' : 'default'}
+                autoCapitalize="none"
+                value={mobileNumber}
+                onChangeText={(val: string) => {
+                  setMobileNumber(val);
+                  if (error) setError('');
+                }}
+                style={styles.textInput}
+              />
             </View>
 
-            {/* Form Container */}
-            <View style={styles.formContainer}>
-              {/* Error Message */}
-              {!!error && (
-                <View style={styles.errorBox}>
-                  <Ionicons name="alert-circle-outline" size={18} color={THEME.danger} />
-                  <Text style={styles.errorMessage}>{error}</Text>
-                </View>
-              )}
-
-              {/* Input 1: Mobile Number */}
-              <View style={styles.inputWrapper}>
-                <View
-                  style={[
-                    styles.inputBox,
-                    activeField === 'mobile' && styles.inputBoxFocused,
-                  ]}
-                >
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Mobile Number"
-                    placeholderTextColor={THEME.textMuted}
-                    keyboardType="phone-pad"
-                    autoCapitalize="none"
-                    value={mobileNumber}
-                    onChangeText={(val) => {
-                      setMobileNumber(val);
-                      if (error) setError('');
-                    }}
-                    onFocus={() => setActiveField('mobile')}
-                    onBlur={() => setActiveField(null)}
-                  />
-                </View>
-              </View>
-
-              {/* Input 2: Password */}
-              <View style={styles.inputWrapper}>
-                <View
-                  style={[
-                    styles.inputBox,
-                    activeField === 'pass' && styles.inputBoxFocused,
-                  ]}
-                >
-                  <TextInput
-                    style={[styles.textInput, { paddingRight: 44 }]}
-                    placeholder="Password"
-                    placeholderTextColor={THEME.textMuted}
-                    secureTextEntry={!showPassword}
-                    value={password}
-                    onChangeText={(val) => {
-                      setPassword(val);
-                      if (error) setError('');
-                    }}
-                    onFocus={() => setActiveField('pass')}
-                    onBlur={() => setActiveField(null)}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeBtn}
-                    onPress={() => setShowPassword(!showPassword)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Ionicons
-                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                      size={20}
-                      color={THEME.textMuted}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Primary Action Button: Sign In */}
+            {/* Input 2: Password */}
+            <View style={styles.inputBox}>
+              <TextInput
+                placeholder="Password"
+                placeholderTextColor={THEME.textMuted}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={(val: string) => {
+                  setPassword(val);
+                  if (error) setError('');
+                }}
+                style={[styles.textInput, { paddingRight: 40 }]}
+              />
               <TouchableOpacity
-                style={styles.actionBtn}
-                activeOpacity={0.88}
-                onPress={handleLogin}
-                disabled={isLoading}
+                style={styles.eyeBtn}
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
-                {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <>
-                    <Text style={styles.actionBtnText}>Sign In</Text>
-                    <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={styles.actionBtnIcon} />
-                  </>
-                )}
+                <Ionicons
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={20}
+                  color={THEME.textMuted}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Primary Action Button: Sign In */}
+            <TouchableOpacity
+              style={styles.actionBtn}
+              activeOpacity={0.88}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.actionBtnText}>
+                    {authRole === 'CUSTOMER' ? 'Sign In' : 'Sign In as Staff / Admin'}
+                  </Text>
+                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={styles.actionBtnIcon} />
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Links Row below Sign In: Left side Forgot Password?, Right side Switcher */}
+            <View style={styles.linksRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  setError('Please contact your chit manager or branch office to reset credentials.');
+                }}
+              >
+                <Text style={styles.linkText}>Forgot Password?</Text>
               </TouchableOpacity>
 
-              {/* Secondary Action Link */}
-              <View style={styles.linksRow}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setError('Please contact your chit manager or branch office to reset credentials.');
-                  }}
-                >
-                  <Text style={styles.linkText}>Forgot Password?</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setAuthRole((prev) => (prev === 'CUSTOMER' ? 'ADMIN_STAFF' : 'CUSTOMER'));
+                  setError('');
+                }}
+              >
+                <Text style={styles.linkText}>
+                  {authRole === 'CUSTOMER' ? 'Admin / Staff Login' : 'Customer Login'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+      </ScrollView>
 
-      {/* Bottom Right Chit Fund Illustration Accent - Outside ScrollView to avoid layout shifts */}
+      {/* Bottom Right Chit Fund Illustration Accent - Absolute to safeArea with pointerEvents none */}
       <View style={styles.bottomIllustrationContainer} pointerEvents="none">
         <Image
           source={require('../../assets/chit_fund_pot.png')}
@@ -304,27 +291,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  inputWrapper: {
-    marginBottom: 16,
-  },
   inputBox: {
     backgroundColor: THEME.inputBg,
-    borderWidth: 1.2,
     borderColor: THEME.inputBorder,
+    borderWidth: 1.2,
     borderRadius: 12,
     height: 54,
+    marginBottom: 16,
     justifyContent: 'center',
     paddingHorizontal: 16,
-  },
-  inputBoxFocused: {
-    borderColor: THEME.inputBorderFocused,
-    shadowColor: THEME.tealPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 2,
+    position: 'relative',
   },
   textInput: {
+    height: '100%',
     fontSize: 15,
     color: THEME.textDark,
     fontWeight: '500',
@@ -362,9 +341,10 @@ const styles = StyleSheet.create({
   linksRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
     marginTop: 20,
-    paddingHorizontal: 2,
+    paddingHorizontal: 4,
   },
   linkText: {
     fontSize: 13,

@@ -283,14 +283,14 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: Colors.gold.primary,
+    backgroundColor: '#FFECC2',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0B1A30',
+    color: '#92400E',
   },
   headerCustomerName: {
     fontSize: 18,

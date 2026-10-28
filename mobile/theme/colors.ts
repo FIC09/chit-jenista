@@ -1,104 +1,104 @@
 /**
- * Mobile Design System Colors matching Jenista Chit Funds Premium FinTech UI
+ * Mobile Design System Colors matching Jenista Chit Funds / Funds Genie FinTech UI
  */
 export const Colors = {
-  // Brand Primary & Navies
+  // Brand Primary & Teals
   navy: {
-    primary: '#102544',
-    secondary: '#19365C',
-    dark: '#0B1A30',
-    light: '#234775',
-    subtle: '#EDF2F9',
+    primary: '#0C8A7D', // Primary Teal
+    secondary: '#086359', // Dark Deep Teal
+    dark: '#054740', // Deepest Teal
+    light: '#14B8A6', // Bright Teal
+    subtle: '#E8F5F3', // Soft Mint Background
   },
   primary: {
-    50: '#F5F8FC',
-    100: '#E4ECF7',
-    200: '#C8D9EE',
-    300: '#9DBEE0',
-    400: '#699BD0',
-    500: '#3478F6', // Blue Accent
-    600: '#235EC4',
-    700: '#19365C', // Secondary Navy
-    800: '#102544', // Primary Navy
-    900: '#0B1A30', // Deepest Navy
-    950: '#060E1A',
+    50: '#F0FDF4',
+    100: '#E8F5F3',
+    200: '#C3E5E0',
+    300: '#5EEAD4',
+    400: '#2DD4BF',
+    500: '#14B8A6',
+    600: '#0C8A7D', // Main Teal
+    700: '#0F766E',
+    800: '#086359', // Deep Teal
+    900: '#054740',
+    950: '#022C28',
   },
-  // Warm Premium Gold
+  // Warm Premium Gold & Accents
   gold: {
     primary: '#FFBF32',
     light: '#FFECC2',
-    dark: '#D99814',
-    subtle: '#FFF8EB',
-    text: '#996300',
+    dark: '#D97706',
+    subtle: '#FFFBEB',
+    text: '#92400E',
   },
-  accent: '#FFBF32',
-  accentLight: '#FFF6E0',
-  accentDark: '#D99814',
+  accent: '#0C8A7D',
+  accentLight: '#E8F5F3',
+  accentDark: '#086359',
 
-  // Neutrals & Surfaces
-  background: '#F4F7FC',
+  // Neutrals & Surfaces (Funds Genie Canvas)
+  background: '#F9FBFB',
   surface: '#FFFFFF',
   card: '#FFFFFF',
-  border: '#E3EAF3',
-  borderLight: '#EDF2F7',
+  border: '#D8E4E5',
+  borderLight: '#EDF4F4',
 
   // Typography
-  text: '#142746',
-  textSecondary: '#74839B',
-  textMuted: '#9AA7BC',
+  text: '#133336',
+  textSecondary: '#7E9596',
+  textMuted: '#9DB3B4',
   textLight: '#CBD5E1',
 
   // Accents & Financial Categories
-  blueAccent: '#3478F6',
-  blueSubtle: '#EEF4FF',
-  purpleAccent: '#8B5CF6',
+  blueAccent: '#0284C7',
+  blueSubtle: '#EBF5FF',
+  purpleAccent: '#7C3AED',
   purpleSubtle: '#F5F3FF',
 
   // Feedback States
-  success: '#15966A',
-  successLight: '#E8F7F1',
-  successText: '#0E6B4B',
+  success: '#0C8A7D',
+  successLight: '#E8F5F3',
+  successText: '#086359',
 
-  warning: '#D98919',
-  warningLight: '#FEF4E6',
-  warningText: '#9A5B0B',
+  warning: '#D97706',
+  warningLight: '#FEF3C7',
+  warningText: '#92400E',
 
-  danger: '#DC4545',
-  dangerLight: '#FDECEC',
-  dangerText: '#A12828',
+  danger: '#DC2626',
+  dangerLight: '#FFF1F2',
+  dangerText: '#991B1B',
 
-  info: '#3478F6',
-  infoLight: '#EEF4FF',
+  info: '#0284C7',
+  infoLight: '#EBF5FF',
 
   white: '#FFFFFF',
   black: '#000000',
 
-  // Backward compatibility aliases
+  // Backward compatibility aliases aligned with Funds Genie Teal System
   secondary: {
-    50: '#F4F7FC',
-    100: '#EDF2F7',
-    200: '#E3EAF3',
-    300: '#CBD5E1',
-    400: '#9AA7BC',
-    500: '#74839B',
-    600: '#475569',
-    700: '#334155',
-    800: '#19365C',
-    900: '#102544',
-    950: '#0B1A30',
+    50: '#F9FBFB', // Same as background
+    100: '#E8F5F3', // Soft Mint
+    200: '#D8E4E5', // Clean border
+    300: '#C3E5E0',
+    400: '#9DB3B4',
+    500: '#7E9596', // Secondary text
+    600: '#466466',
+    700: '#2A4A4D',
+    800: '#086359', // Deep Teal
+    900: '#133336', // Primary dark text
+    950: '#054740', // Deepest Teal
   },
   neutral: {
-    50: '#F8FAFC',
-    100: '#F1F5F9',
-    200: '#E2E8F0',
-    300: '#CBD5E1',
-    400: '#94A3B8',
-    500: '#74839B',
-    600: '#475569',
-    700: '#334155',
-    800: '#1E293B',
-    900: '#142746',
-    950: '#0B1A30',
+    50: '#F9FBFB',
+    100: '#E8F5F3',
+    200: '#D8E4E5',
+    300: '#C3E5E0',
+    400: '#9DB3B4',
+    500: '#7E9596',
+    600: '#466466',
+    700: '#2A4A4D',
+    800: '#086359',
+    900: '#133336',
+    950: '#054740',
   },
 };
 

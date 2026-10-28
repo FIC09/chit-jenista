@@ -162,7 +162,7 @@ export const CustomerListScreen: React.FC<{ route?: any; navigation: any }> = ({
           onPress={() => navigation.navigate('AddCustomer')}
           activeOpacity={0.8}
         >
-          <Ionicons name="person-add" size={18} color="#0B1A30" />
+          <Ionicons name="person-add" size={18} color="#133336" />
         </TouchableOpacity>
       </View>
 
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
   },
   schemeActiveBannerText: {
     fontSize: 12,
-    color: '#0B1A30',
+    color: '#133336',
     fontWeight: '600',
   },
   schemeClearBtn: {

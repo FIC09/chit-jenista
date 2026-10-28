@@ -264,46 +264,48 @@ const DrawerItem: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.navy.primary,
+    backgroundColor: '#086359',
   },
   header: {
     paddingHorizontal: 18,
     paddingTop: 16,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   userProfileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     padding: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   avatarBubble: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: Colors.gold.primary,
+    backgroundColor: '#0C8A7D',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   avatarText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0B1A30',
+    color: '#FFFFFF',
   },
   userName: {
     fontSize: 15,
     fontWeight: '800',
-    color: Colors.white,
+    color: '#FFFFFF',
     letterSpacing: 0.2,
   },
   userRoleText: {
     fontSize: 11,
-    color: Colors.gold.primary,
+    color: '#FFECC2',
     fontWeight: '600',
     marginTop: 2,
   },
@@ -314,7 +316,7 @@ const styles = StyleSheet.create({
   },
   menuDivider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     marginVertical: 10,
     marginHorizontal: 8,
   },
@@ -328,28 +330,28 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   itemActive: {
-    backgroundColor: 'rgba(255, 191, 50, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
   },
   itemText: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   itemTextActive: {
-    color: Colors.gold.primary,
+    color: '#FFECC2',
     fontWeight: '800',
   },
   activeDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.gold.primary,
+    backgroundColor: '#FFBF32',
   },
   footer: {
     padding: 18,
     borderTopWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   logoutBtn: {
     flexDirection: 'row',
@@ -360,11 +362,11 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.gold.primary,
+    color: '#FFECC2',
   },
   versionText: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: 'rgba(255, 255, 255, 0.5)',
     marginTop: 8,
   },
 });

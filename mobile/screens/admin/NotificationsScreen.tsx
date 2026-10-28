@@ -344,7 +344,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       {/* Header Banner */}
       <View style={styles.header}>
@@ -360,7 +360,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
             onPress={onRefresh}
             activeOpacity={0.7}
           >
-            <Ionicons name="refresh" size={18} color={Colors.white} />
+            <Ionicons name="refresh" size={18} color="#0C8A7D" />
           </TouchableOpacity>
         </View>
 
@@ -369,6 +369,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
           <TouchableOpacity
             style={[styles.filterPill, activeFilter === 'ALL' && styles.filterPillActive]}
             onPress={() => setActiveFilter('ALL')}
+            activeOpacity={0.8}
           >
             <Text
               style={[
@@ -383,6 +384,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
           <TouchableOpacity
             style={[styles.filterPill, activeFilter === 'PAYMENTS' && styles.filterPillActive]}
             onPress={() => setActiveFilter('PAYMENTS')}
+            activeOpacity={0.8}
           >
             <Text
               style={[
@@ -397,6 +399,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
           <TouchableOpacity
             style={[styles.filterPill, activeFilter === 'DUES' && styles.filterPillActive]}
             onPress={() => setActiveFilter('DUES')}
+            activeOpacity={0.8}
           >
             <Text
               style={[
@@ -412,7 +415,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={Colors.gold.primary} />
+          <ActivityIndicator size="large" color="#0C8A7D" />
         </View>
       ) : (
         <FlatList
@@ -424,13 +427,13 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={Colors.gold.primary}
+              tintColor="#0C8A7D"
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconCircle}>
-                <Ionicons name="checkmark-done" size={32} color={Colors.success} />
+                <Ionicons name="checkmark-done" size={32} color="#0C8A7D" />
               </View>
               <Text style={styles.emptyTitle}>All Caught Up!</Text>
               <Text style={styles.emptySub}>
@@ -447,7 +450,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F9FBFB',
   },
   center: {
     flex: 1,
@@ -455,34 +458,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    backgroundColor: Colors.navy.primary,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 18,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#D8E4E5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
-    color: Colors.white,
-    letterSpacing: -0.4,
+    color: '#086359',
+    letterSpacing: -0.3,
   },
   headerSub: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#7E9596',
     marginTop: 2,
     fontWeight: '500',
   },
   refreshBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#E8F5F3',
+    borderWidth: 1,
+    borderColor: '#C3E5E0',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -494,33 +506,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#F0F5F5',
+    borderWidth: 1,
+    borderColor: '#D8E4E5',
   },
   filterPillActive: {
-    backgroundColor: Colors.gold.primary,
+    backgroundColor: '#0C8A7D',
+    borderColor: '#0C8A7D',
   },
   filterPillText: {
     fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#7E9596',
   },
   filterPillTextActive: {
-    color: '#0B1A30',
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   listContent: {
     padding: 16,
     paddingBottom: 40,
   },
   card: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'flex-start',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#0F172A',
+    borderColor: '#D8E4E5',
+    shadowColor: '#0C8A7D',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -542,18 +558,18 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#133336',
     flex: 1,
     marginRight: 8,
   },
   timeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: '#7E9596',
   },
   subtitleText: {
     fontSize: 12.5,
-    color: '#475569',
+    color: '#4A6263',
     lineHeight: 18,
     fontWeight: '500',
     marginBottom: 10,
@@ -581,7 +597,7 @@ const styles = StyleSheet.create({
   actionLinkText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.primary[600],
+    color: '#0C8A7D',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -593,7 +609,9 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#E8F5F3',
+    borderWidth: 1,
+    borderColor: '#C3E5E0',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -601,12 +619,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#086359',
     marginBottom: 6,
   },
   emptySub: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#7E9596',
     textAlign: 'center',
     lineHeight: 19,
   },

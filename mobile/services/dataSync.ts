@@ -1,5 +1,5 @@
 import { secureStorage } from './storage';
-import { Customer, ChitGroup, PaymentRequest, LedgerTransaction } from '../types';
+import { Customer, ChitGroup, PaymentRequest, LedgerTransaction, CustomerGoal } from '../types';
 import { isMockCustomer, isMockGroup } from './cleanMockData';
 
 /**
@@ -963,6 +963,89 @@ export const DataSyncManager = {
       });
     } catch (e) {
       console.warn('Backend sync withdrawal request status update failed:', e);
+    }
+  },
+
+  /**
+   * CUSTOMER SAVINGS GOALS (Funds Genie Goal Tracking)
+   * Persists goals to MongoDB backend / local persistent storage
+   */
+  async getCustomerGoals(customerId?: string): Promise<CustomerGoal[]> {
+    let mongoGoals: CustomerGoal[] = [];
+    try {
+      const baseUrl = await getActiveBaseUrl();
+      const url = customerId ? `${baseUrl}/customers/${customerId}/goals` : `${baseUrl}/goals`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && Array.isArray(json.data)) {
+          mongoGoals = json.data;
+        }
+      }
+    } catch (e) {
+      // Backend collection may be offline or initializing, read local storage
+    }
+
+    const localRaw = await secureStorage.getItem('customer_goals');
+    const localGoals: CustomerGoal[] = localRaw ? JSON.parse(localRaw) : [];
+
+    const map = new Map<string, CustomerGoal>();
+    mongoGoals.forEach((g) => map.set(g.id, g));
+    localGoals.forEach((g) => {
+      if (!map.has(g.id)) {
+        map.set(g.id, g);
+      }
+    });
+
+    // Filter out any temporary mock goals
+    const allGoals = Array.from(map.values()).filter(
+      (g) => !g.id.startsWith('default-goal-')
+    );
+    await secureStorage.setItem('customer_goals', JSON.stringify(allGoals));
+
+    if (customerId) {
+      return allGoals.filter((g) => g.customerId === customerId);
+    }
+    return allGoals;
+  },
+
+  async saveCustomerGoal(goalData: Omit<CustomerGoal, 'id' | 'createdAt'> & { id?: string }): Promise<CustomerGoal> {
+    const newGoal: CustomerGoal = {
+      ...goalData,
+      id: goalData.id || `GOAL-${Date.now().toString().slice(-6)}`,
+      createdAt: new Date().toISOString(),
+    };
+
+    const currentGoals = await this.getCustomerGoals();
+    const updated = [newGoal, ...currentGoals.filter((g) => g.id !== newGoal.id)];
+    await secureStorage.setItem('customer_goals', JSON.stringify(updated));
+
+    try {
+      const baseUrl = await getActiveBaseUrl();
+      await fetch(`${baseUrl}/customers/${goalData.customerId}/goals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newGoal),
+      });
+    } catch (e) {
+      console.warn('Backend sync customer goal error (persisted locally):', e);
+    }
+
+    return newGoal;
+  },
+
+  async deleteCustomerGoal(goalId: string, customerId: string): Promise<void> {
+    const currentGoals = await this.getCustomerGoals();
+    const updated = currentGoals.filter((g) => g.id !== goalId);
+    await secureStorage.setItem('customer_goals', JSON.stringify(updated));
+
+    try {
+      const baseUrl = await getActiveBaseUrl();
+      await fetch(`${baseUrl}/customers/${customerId}/goals/${goalId}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      console.warn('Backend delete goal error:', e);
     }
   },
 };

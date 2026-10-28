@@ -282,7 +282,7 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
             <Ionicons
               name="time-outline"
               size={18}
-              color={paymentMode === 'UPI' ? '#0B1A30' : Colors.textSecondary}
+              color={paymentMode === 'UPI' ? '#133336' : Colors.textSecondary}
             />
             <Text
               style={[
@@ -306,7 +306,7 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
             <Ionicons
               name="cash-outline"
               size={18}
-              color={paymentMode === 'CASH' ? '#0B1A30' : Colors.textSecondary}
+              color={paymentMode === 'CASH' ? '#133336' : Colors.textSecondary}
             />
             <Text
               style={[
@@ -330,7 +330,7 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
             <Ionicons
               name="business-outline"
               size={18}
-              color={paymentMode === 'BANK_TRANSFER' ? '#0B1A30' : Colors.textSecondary}
+              color={paymentMode === 'BANK_TRANSFER' ? '#133336' : Colors.textSecondary}
             />
             <Text
               style={[
@@ -373,7 +373,7 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
         disabled={isSubmitting}
         activeOpacity={0.85}
       >
-        <Ionicons name="card" size={18} color="#0B1A30" />
+        <Ionicons name="card" size={18} color="#133336" />
         <Text style={styles.savePaymentBtnText}>Save Payment</Text>
       </TouchableOpacity>
 
@@ -434,7 +434,7 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
                 <Ionicons
                   name="layers"
                   size={13}
-                  color={filterOnlyThisGroup ? '#0B1A30' : Colors.purpleAccent}
+                  color={filterOnlyThisGroup ? '#133336' : Colors.purpleAccent}
                 />
                 <Text
                   style={[
@@ -726,7 +726,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   methodTileTextActive: {
-    color: '#0B1A30',
+    color: '#133336',
     fontWeight: '800',
   },
 
@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
   savePaymentBtnText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0B1A30',
+    color: '#133336',
     letterSpacing: 0.2,
   },
 
@@ -859,7 +859,7 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   groupFilterChipTextActive: {
-    color: '#0B1A30',
+    color: '#133336',
   },
   modalList: {
     paddingHorizontal: 20,

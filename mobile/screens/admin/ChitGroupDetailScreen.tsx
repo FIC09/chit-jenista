@@ -387,11 +387,11 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
               activeOpacity={0.85}
               onPress={() => setActiveTab(activeTab === 'MEMBERS' ? 'OVERVIEW' : 'MEMBERS')}
             >
-              <Ionicons name="people" size={16} color="#0B1A30" />
+              <Ionicons name="people" size={16} color="#133336" />
               <Text style={styles.viewMembersBtnText}>
                 {activeTab === 'MEMBERS' ? 'Hide' : 'Members'}
               </Text>
-              <Ionicons name="chevron-forward" size={14} color="#0B1A30" />
+              <Ionicons name="chevron-forward" size={14} color="#133336" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1128,7 +1128,7 @@ const styles = StyleSheet.create({
   viewMembersBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B1A30',
+    color: '#133336',
   },
 
   // 4. Next Payment Due Card

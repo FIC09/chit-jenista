@@ -87,8 +87,9 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           <TouchableOpacity
             style={styles.newReceiptBtn}
             onPress={() => navigation.navigate('ReceiptEntry')}
+            activeOpacity={0.85}
           >
-            <Ionicons name="receipt" size={16} color="#0f172a" />
+            <Ionicons name="receipt" size={15} color="#0C8A7D" />
             <Text style={styles.newReceiptText}>+ Issue Receipt</Text>
           </TouchableOpacity>
         </View>
@@ -115,8 +116,8 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           onPress={() => navigation.navigate('ReceiptEntry')}
           activeOpacity={0.7}
         >
-          <View style={[styles.actionIconCircle, { backgroundColor: '#F0FDF4' }]}>
-            <Ionicons name="card-outline" size={20} color="#16A34A" />
+          <View style={[styles.actionIconCircle, { backgroundColor: '#E8F5F3' }]}>
+            <Ionicons name="card-outline" size={20} color="#0C8A7D" />
           </View>
           <Text style={styles.actionTileText}>Raise Receipt</Text>
         </TouchableOpacity>
@@ -126,8 +127,8 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           onPress={() => navigation.navigate('AddCustomer')}
           activeOpacity={0.7}
         >
-          <View style={[styles.actionIconCircle, { backgroundColor: Colors.blueSubtle }]}>
-            <Ionicons name="person-add-outline" size={20} color={Colors.blueAccent} />
+          <View style={[styles.actionIconCircle, { backgroundColor: '#EBF5FF' }]}>
+            <Ionicons name="person-add-outline" size={20} color="#0284C7" />
           </View>
           <Text style={styles.actionTileText}>Add Customer</Text>
         </TouchableOpacity>
@@ -137,8 +138,8 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           onPress={() => navigation.navigate('ChitGroupList')}
           activeOpacity={0.7}
         >
-          <View style={[styles.actionIconCircle, { backgroundColor: '#FFF8EB' }]}>
-            <Ionicons name="person-add" size={20} color={Colors.gold.dark} />
+          <View style={[styles.actionIconCircle, { backgroundColor: '#FEF3C7' }]}>
+            <Ionicons name="people" size={20} color="#D97706" />
           </View>
           <Text style={styles.actionTileText}>Add to Group</Text>
         </TouchableOpacity>
@@ -148,8 +149,8 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           onPress={() => navigation.navigate('CustomerList')}
           activeOpacity={0.7}
         >
-          <View style={[styles.actionIconCircle, { backgroundColor: '#F1F5F9' }]}>
-            <Ionicons name="people-outline" size={20} color={Colors.navy.primary} />
+          <View style={[styles.actionIconCircle, { backgroundColor: '#E8F5F3' }]}>
+            <Ionicons name="people-outline" size={20} color="#086359" />
           </View>
           <Text style={styles.actionTileText}>Members</Text>
         </TouchableOpacity>
@@ -160,6 +161,7 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
         <TouchableOpacity
           style={[styles.tab, activeTab === 'DUES' && styles.tabActive]}
           onPress={() => setActiveTab('DUES')}
+          activeOpacity={0.8}
         >
           <Text style={[styles.tabText, activeTab === 'DUES' && styles.tabTextActive]}>
             Assigned Dues ({customersWithDues.length})
@@ -168,6 +170,7 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
         <TouchableOpacity
           style={[styles.tab, activeTab === 'COLLECTED' && styles.tabActive]}
           onPress={() => setActiveTab('COLLECTED')}
+          activeOpacity={0.8}
         >
           <Text style={[styles.tabText, activeTab === 'COLLECTED' && styles.tabTextActive]}>
             Recorded Receipts
@@ -179,7 +182,13 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
         <FlatList
           data={customersWithDues}
           keyExtractor={(item) => item.id}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#0C8A7D"
+            />
+          }
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <View style={styles.dueCard}>
@@ -191,7 +200,7 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={styles.custName}>{item.name}</Text>
-                    <Ionicons name="open-outline" size={14} color={Colors.primary[600]} />
+                    <Ionicons name="open-outline" size={14} color="#0C8A7D" />
                   </View>
                   <Text style={styles.custPhone}>ID: {item.id} • {item.phone || 'No phone'}</Text>
                 </TouchableOpacity>
@@ -205,9 +214,10 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
                 <TouchableOpacity
                   style={styles.callBtn}
                   onPress={() => dialCustomer(item.phone || item.mobile)}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="call" size={15} color={Colors.white} />
-                  <Text style={styles.btnTextWhite}>Call Member</Text>
+                  <Ionicons name="call" size={14} color="#FFFFFF" />
+                  <Text style={styles.btnTextWhite}>Call</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -215,8 +225,9 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
                   onPress={() =>
                     openWhatsApp(item.phone || item.mobile, item.name, item.pending)
                   }
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="logo-whatsapp" size={15} color={Colors.white} />
+                  <Ionicons name="logo-whatsapp" size={14} color="#FFFFFF" />
                   <Text style={styles.btnTextWhite}>WhatsApp</Text>
                 </TouchableOpacity>
 
@@ -231,9 +242,10 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
                       chitGroup: item.chits?.[0]?.groupName || item.chits?.[0]?.groupId || '',
                     })
                   }
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="cash" size={15} color="#0f172a" />
-                  <Text style={styles.btnTextDark}>Collect</Text>
+                  <Ionicons name="cash" size={14} color="#FFFFFF" />
+                  <Text style={styles.btnTextTeal}>Collect</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -243,7 +255,13 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
         <FlatList
           data={ledgerEntries}
           keyExtractor={(item) => item.id}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#0C8A7D"
+            />
+          }
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <View style={styles.receiptCard}>
@@ -266,20 +284,18 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#F9FBFB',
   },
   heroCard: {
-    backgroundColor: Colors.navy.primary,
+    backgroundColor: '#0C8A7D',
     margin: 16,
     borderRadius: 22,
     padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    shadowColor: Colors.navy.primary,
+    shadowColor: '#0C8A7D',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.18,
     shadowRadius: 10,
-    elevation: 3,
+    elevation: 4,
   },
   heroTop: {
     flexDirection: 'row',
@@ -289,45 +305,45 @@ const styles = StyleSheet.create({
   roleTag: {
     fontSize: 10,
     fontWeight: '800',
-    color: Colors.gold.primary,
+    color: '#FFECC2',
     letterSpacing: 1,
   },
   staffName: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '800',
-    color: Colors.white,
+    color: '#FFFFFF',
     marginTop: 2,
     letterSpacing: 0.2,
   },
   newReceiptBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.gold.primary,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: 14,
     gap: 6,
-    shadowColor: Colors.gold.dark,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.16,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
   },
   newReceiptText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0B1A30',
+    color: '#0C8A7D',
   },
   notifBtn: {
     width: 38,
     height: 38,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   notifBadgeDot: {
     position: 'absolute',
@@ -336,13 +352,13 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ef4444',
+    backgroundColor: '#EF4444',
     borderWidth: 1.5,
-    borderColor: Colors.navy.primary,
+    borderColor: '#0C8A7D',
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     marginVertical: 14,
   },
   statsRow: {
@@ -354,28 +370,28 @@ const styles = StyleSheet.create({
   },
   vDivider: {
     width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
   },
   statLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.neutral[400],
+    color: 'rgba(255, 255, 255, 0.8)',
     letterSpacing: 0.5,
   },
   collectionAmt: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '800',
-    color: '#4ade80',
+    color: '#FFECC2',
     marginTop: 4,
   },
   overdueAmt: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '800',
-    color: '#f87171',
+    color: '#FED7AA',
     marginTop: 4,
   },
   quickActionsCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 20,
@@ -384,7 +400,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#D8E4E5',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -406,38 +422,40 @@ const styles = StyleSheet.create({
   actionTileText: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.text,
+    color: '#133336',
     textAlign: 'center',
   },
   tabContainer: {
     flexDirection: 'row',
     marginHorizontal: 16,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 10,
+    backgroundColor: '#E8F5F3',
+    borderRadius: 14,
     padding: 4,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#C3E5E0',
   },
   tab: {
     flex: 1,
     paddingVertical: 8,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 10,
   },
   tabActive: {
-    backgroundColor: Colors.white,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    backgroundColor: '#0C8A7D',
+    shadowColor: '#0C8A7D',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
     elevation: 2,
   },
   tabText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
+    fontWeight: '700',
+    color: '#7E9596',
   },
   tabTextActive: {
-    color: '#0f172a',
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   listContent: {
@@ -445,11 +463,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   dueCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#D8E4E5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   dueTop: {
     flexDirection: 'row',
@@ -460,22 +483,22 @@ const styles = StyleSheet.create({
   custName: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#133336',
   },
   custPhone: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#7E9596',
     marginTop: 2,
   },
   pendingAmount: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.danger,
+    color: '#D97706',
   },
   pendingLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#94a3b8',
+    color: '#7E9596',
     marginTop: 2,
   },
   actionRow: {
@@ -487,47 +510,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563eb',
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
+    backgroundColor: '#0284C7',
+    paddingVertical: 9,
+    borderRadius: 10,
+    gap: 5,
   },
   waBtn: {
-    flex: 1,
+    flex: 1.2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#059669',
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
+    backgroundColor: '#16A34A',
+    paddingVertical: 9,
+    borderRadius: 10,
+    gap: 5,
   },
   collectBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary[400],
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
+    backgroundColor: '#0C8A7D',
+    paddingVertical: 9,
+    borderRadius: 10,
+    gap: 5,
   },
   btnTextWhite: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.white,
+    color: '#FFFFFF',
   },
-  btnTextDark: {
+  btnTextTeal: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#FFFFFF',
   },
   receiptCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     padding: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#D8E4E5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   recHeader: {
     flexDirection: 'row',
@@ -537,22 +565,22 @@ const styles = StyleSheet.create({
   recNo: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748b',
+    color: '#7E9596',
   },
   recAmt: {
     fontSize: 15,
     fontWeight: '800',
-    color: Colors.success,
+    color: '#0C8A7D',
   },
   recDesc: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#133336',
     marginTop: 4,
   },
   recMeta: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: '#7E9596',
     marginTop: 2,
   },
 });

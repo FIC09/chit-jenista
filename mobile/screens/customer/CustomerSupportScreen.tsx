@@ -10,11 +10,30 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
+import { useAuth } from '../../store/AuthContext';
 
 export const CustomerSupportScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { logout } = useAuth();
   const helplineNumber = '+919876543210';
   const whatsappNumber = '919876543210';
   const supportEmail = 'support@jenistachits.com';
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out of your account?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+          },
+        },
+      ]
+    );
+  };
 
   const handleCall = () => {
     Linking.openURL(`tel:${helplineNumber}`).catch(() => {
@@ -99,7 +118,7 @@ export const CustomerSupportScreen: React.FC<{ navigation: any }> = ({ navigatio
 
       <View style={styles.officeCard}>
         <View style={styles.officeHeader}>
-          <Ionicons name="business" size={20} color={Colors.navy.primary} />
+          <Ionicons name="business" size={20} color="#0C8A7D" />
           <Text style={styles.officeTitle}>Jenista Chit Funds Pvt. Ltd.</Text>
         </View>
         <Text style={styles.officeAddress}>
@@ -111,6 +130,16 @@ export const CustomerSupportScreen: React.FC<{ navigation: any }> = ({ navigatio
           <Text style={styles.officeMeta}>Foreman Reg: FR-TN-2020-0042</Text>
         </View>
       </View>
+
+      {/* Account Logout Action */}
+      <TouchableOpacity
+        style={styles.logoutCardBtn}
+        onPress={handleLogout}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="log-out-outline" size={20} color="#DC2626" />
+        <Text style={styles.logoutCardBtnText}>Log Out from Account</Text>
+      </TouchableOpacity>
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -244,5 +273,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
     fontWeight: '600',
+  },
+  logoutCardBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1.5,
+    borderColor: '#FECDD3',
+    paddingVertical: 14,
+    borderRadius: 16,
+    marginTop: 8,
+  },
+  logoutCardBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#DC2626',
   },
 });
