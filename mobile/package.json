@@ -27,6 +27,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0",
     "typescript": "~6.0.3"
   },
   "scripts": {

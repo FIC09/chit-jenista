@@ -4,3 +4,17 @@
 {"level":"info","message":"Server running in development mode on port 3000","timestamp":"2026-10-27T05:31:45.270Z"}
 {"level":"info","message":"MongoDB Connected: ac-lb3lkqy-shard-00-00.lttiogk.mongodb.net","timestamp":"2026-10-27T05:31:50.368Z"}
 {"level":"info","message":"Server running in development mode on port 3000","timestamp":"2026-10-27T05:31:50.385Z"}
+{"level":"info","message":"MongoDB Connected: ac-lb3lkqy-shard-00-00.lttiogk.mongodb.net","timestamp":"2026-10-27T08:41:41.056Z"}
+{"level":"info","message":"Server running in development mode on port 3000","timestamp":"2026-10-27T08:41:41.066Z"}
+{"expected":500586,"length":500586,"level":"error","limit":102400,"message":"request entity too large","timestamp":"2026-10-27T11:20:21.922Z","type":"entity.too.large"}
+{"level":"error","message":"[\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"body\",\n      \"identifier\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"origin\": \"string\",\n    \"code\": \"too_small\",\n    \"minimum\": 6,\n    \"inclusive\": true,\n    \"path\": [\n      \"body\",\n      \"password\"\n    ],\n    \"message\": \"Password must be at least 6 characters\"\n  }\n]","name":"ZodError","timestamp":"2026-10-27T11:20:43.562Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-27T11:20:44.680Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-27T11:48:26.741Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-27T11:48:26.757Z"}
+{"level":"error","message":"[\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"body\",\n      \"identifier\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"origin\": \"string\",\n    \"code\": \"too_small\",\n    \"minimum\": 6,\n    \"inclusive\": true,\n    \"path\": [\n      \"body\",\n      \"password\"\n    ],\n    \"message\": \"Password must be at least 6 characters\"\n  }\n]","name":"ZodError","timestamp":"2026-10-27T11:48:39.283Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-27T11:56:50.807Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-27T11:57:00.196Z"}
+{"level":"error","message":"[\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"body\",\n      \"identifier\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"origin\": \"string\",\n    \"code\": \"too_small\",\n    \"minimum\": 6,\n    \"inclusive\": true,\n    \"path\": [\n      \"body\",\n      \"password\"\n    ],\n    \"message\": \"Password must be at least 6 characters\"\n  }\n]","name":"ZodError","timestamp":"2026-10-27T11:58:27.592Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-27T11:58:31.745Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-27T11:58:32.123Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-27T11:59:05.720Z"}

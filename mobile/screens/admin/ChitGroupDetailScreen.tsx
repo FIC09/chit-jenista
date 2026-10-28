@@ -97,14 +97,14 @@ export const ChitGroupDetailScreen: React.FC<{ route: any; navigation: any }> = 
                 const isPaidStatus =
                   ch.paymentStatus === 'PAID' ||
                   (chitPendingVal !== undefined && chitPendingVal === 0 && chitPaidVal > 0);
-                
+
                 const finalPending = isPaidStatus
                   ? 0
                   : chitPendingVal !== undefined
-                  ? chitPendingVal
-                  : (c.chits && c.chits.length === 1 && Number(c.pending || 0) > 0)
-                  ? Number(c.pending)
-                  : Number(ch.monthlyInstallment || monthlyInstallment);
+                    ? chitPendingVal
+                    : (c.chits && c.chits.length === 1 && Number(c.pending || 0) > 0)
+                      ? Number(c.pending)
+                      : Number(ch.monthlyInstallment || monthlyInstallment);
 
                 seenKey.add(key);
                 matched.push({

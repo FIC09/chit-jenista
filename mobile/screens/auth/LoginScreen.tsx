@@ -8,32 +8,50 @@ import {
   Platform,
   ScrollView,
   StatusBar,
+  TextInput,
+  ActivityIndicator,
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../theme/colors';
-import { Input } from '../../components/common/Input';
-import { Button } from '../../components/common/Button';
 import { useAuth } from '../../store/AuthContext';
+
+// Clean Teal FinTech Theme Palette
+const THEME = {
+  bg: '#F9FBFB',
+  surface: '#FFFFFF',
+  tealPrimary: '#0C8A7D',
+  tealDark: '#086359',
+  tealLight: '#E8F5F3',
+  tealBorder: '#D2EBE6',
+  textDark: '#133336',
+  textMuted: '#7E9596',
+  inputBg: '#FFFFFF',
+  inputBorder: '#D8E4E5',
+  inputBorderFocused: '#0C8A7D',
+  danger: '#DC4545',
+  dangerLight: '#FDECEC',
+};
 
 export const LoginScreen: React.FC = () => {
   const { loginAsCustomer, loginAsAdminOrStaff } = useAuth();
-  const [authMode, setAuthMode] = useState<'CUSTOMER' | 'STAFF_ADMIN'>('CUSTOMER');
 
-  const [identifier, setIdentifier] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const [activeField, setActiveField] = useState<'mobile' | 'pass' | null>(null);
+
   const handleLogin = async () => {
-    if (!identifier.trim()) {
-      setError(authMode === 'CUSTOMER' ? 'Please enter mobile number' : 'Please enter username');
+    const trimmedInput = mobileNumber.trim();
+    if (!trimmedInput) {
+      setError('Please enter your mobile number');
       return;
     }
     if (!password.trim()) {
-      setError('Please enter your password / OTP');
+      setError('Please enter your password or PIN');
       return;
     }
 
@@ -41,10 +59,27 @@ export const LoginScreen: React.FC = () => {
     setError('');
 
     try {
-      if (authMode === 'CUSTOMER') {
-        await loginAsCustomer(identifier, password);
-      } else {
-        await loginAsAdminOrStaff(identifier, password);
+      const lower = trimmedInput.toLowerCase();
+
+      // If user typed admin/staff credentials or username
+      if (lower === 'admin' || lower === 'staff') {
+        await loginAsAdminOrStaff(trimmedInput, password);
+        return;
+      }
+
+      // First attempt customer login (matches registered phone or customer code)
+      try {
+        await loginAsCustomer(trimmedInput, password);
+        return;
+      } catch (custErr: any) {
+        // If customer wasn't found or failed, attempt admin/staff login seamlessly
+        try {
+          await loginAsAdminOrStaff(trimmedInput, password);
+          return;
+        } catch {
+          // Throw the appropriate error message
+          throw custErr;
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Login failed. Please verify credentials.');
@@ -55,131 +90,144 @@ export const LoginScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="none"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
         >
-          {/* Header Banner */}
-          <View style={styles.header}>
-            <View style={styles.logoBadge}>
-              <Image
-                source={require('../../assets/icon.png')}
-                style={{ width: 72, height: 72, borderRadius: 16 }}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={styles.appTitle}>JENISTA CHITS</Text>
-            <Text style={styles.appSubtitle}>Smart Chit Fund Management</Text>
-          </View>
-
-          {/* Card Container */}
-          <View style={styles.card}>
-            {/* Mode Switcher */}
-            <View style={styles.tabContainer}>
-              <TouchableOpacity
-                style={[styles.tab, authMode === 'CUSTOMER' && styles.tabActive]}
-                onPress={() => {
-                  setAuthMode('CUSTOMER');
-                  setError('');
-                }}
-              >
-                <Ionicons
-                  name="person"
-                  size={16}
-                  color={authMode === 'CUSTOMER' ? Colors.secondary[900] : Colors.neutral[500]}
+          {/* Centered Credential Content Box */}
+          <View style={styles.centerContainer}>
+            {/* Brand Header */}
+            <View style={styles.brandContainer}>
+              <View style={styles.logoBadge}>
+                <Image
+                  source={require('../../assets/Golden Tree Emblem Logo.png')}
+                  style={styles.logoImage}
+                  resizeMode="contain"
                 />
-                <Text
-                  style={[styles.tabText, authMode === 'CUSTOMER' && styles.tabTextActive]}
-                >
-                  Customer
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.tab, authMode === 'STAFF_ADMIN' && styles.tabActive]}
-                onPress={() => {
-                  setAuthMode('STAFF_ADMIN');
-                  setError('');
-                }}
-              >
-                <Ionicons
-                  name="shield-checkmark"
-                  size={16}
-                  color={authMode === 'STAFF_ADMIN' ? Colors.secondary[900] : Colors.neutral[500]}
-                />
-                <Text
-                  style={[styles.tabText, authMode === 'STAFF_ADMIN' && styles.tabTextActive]}
-                >
-                  Admin / Staff
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Error banner */}
-            {!!error && (
-              <View style={styles.errorBox}>
-                <Ionicons name="alert-circle" size={18} color={Colors.danger} />
-                <Text style={styles.errorMessage}>{error}</Text>
               </View>
-            )}
+              <Text style={styles.brandTitle}>Jenista Chits</Text>
+              <Text style={styles.brandTagline}>Smart Member & Chit Portfolio Portal</Text>
+            </View>
 
-            {/* Fields */}
-            {authMode === 'CUSTOMER' ? (
-              <Input
-                label="Registered Mobile Number"
-                placeholder="e.g. 9840123456"
-                keyboardType="phone-pad"
-                value={identifier}
-                onChangeText={setIdentifier}
-                leftIcon={<Ionicons name="call-outline" size={18} color={Colors.neutral[400]} />}
-              />
-            ) : (
-              <Input
-                label="Username / Staff ID"
-                placeholder="e.g. admin or staff"
-                autoCapitalize="none"
-                value={identifier}
-                onChangeText={setIdentifier}
-                leftIcon={<Ionicons name="person-outline" size={18} color={Colors.neutral[400]} />}
-              />
-            )}
+            {/* Form Container */}
+            <View style={styles.formContainer}>
+              {/* Error Message */}
+              {!!error && (
+                <View style={styles.errorBox}>
+                  <Ionicons name="alert-circle-outline" size={18} color={THEME.danger} />
+                  <Text style={styles.errorMessage}>{error}</Text>
+                </View>
+              )}
 
-            <Input
-              label="Password / Security PIN"
-              placeholder="••••••••"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
-              leftIcon={<Ionicons name="lock-closed-outline" size={18} color={Colors.neutral[400]} />}
-              rightIcon={
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Ionicons
-                    name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                    size={20}
-                    color={Colors.neutral[400]}
+              {/* Input 1: Mobile Number */}
+              <View style={styles.inputWrapper}>
+                <View
+                  style={[
+                    styles.inputBox,
+                    activeField === 'mobile' && styles.inputBoxFocused,
+                  ]}
+                >
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Mobile Number"
+                    placeholderTextColor={THEME.textMuted}
+                    keyboardType="phone-pad"
+                    autoCapitalize="none"
+                    value={mobileNumber}
+                    onChangeText={(val) => {
+                      setMobileNumber(val);
+                      if (error) setError('');
+                    }}
+                    onFocus={() => setActiveField('mobile')}
+                    onBlur={() => setActiveField(null)}
                   />
+                </View>
+              </View>
+
+              {/* Input 2: Password */}
+              <View style={styles.inputWrapper}>
+                <View
+                  style={[
+                    styles.inputBox,
+                    activeField === 'pass' && styles.inputBoxFocused,
+                  ]}
+                >
+                  <TextInput
+                    style={[styles.textInput, { paddingRight: 44 }]}
+                    placeholder="Password"
+                    placeholderTextColor={THEME.textMuted}
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={(val) => {
+                      setPassword(val);
+                      if (error) setError('');
+                    }}
+                    onFocus={() => setActiveField('pass')}
+                    onBlur={() => setActiveField(null)}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeBtn}
+                    onPress={() => setShowPassword(!showPassword)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={20}
+                      color={THEME.textMuted}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Primary Action Button: Sign In */}
+              <TouchableOpacity
+                style={styles.actionBtn}
+                activeOpacity={0.88}
+                onPress={handleLogin}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.actionBtnText}>Sign In</Text>
+                    <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={styles.actionBtnIcon} />
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {/* Secondary Action Link */}
+              <View style={styles.linksRow}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setError('Please contact your chit manager or branch office to reset credentials.');
+                  }}
+                >
+                  <Text style={styles.linkText}>Forgot Password?</Text>
                 </TouchableOpacity>
-              }
-            />
-
-            <Button
-              title={authMode === 'CUSTOMER' ? 'Sign In to Account' : 'Authenticate & Sign In'}
-              onPress={handleLogin}
-              isLoading={isLoading}
-              style={styles.submitBtn}
-            />
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Secure Chit Fund Platform v1.0.6</Text>
+              </View>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Bottom Right Chit Fund Illustration Accent - Outside ScrollView to avoid layout shifts */}
+      <View style={styles.bottomIllustrationContainer} pointerEvents="none">
+        <Image
+          source={require('../../assets/chit_fund_pot.png')}
+          style={styles.cornerIllustration}
+          resizeMode="contain"
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -187,140 +235,153 @@ export const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.navy.primary,
+    backgroundColor: THEME.bg,
+    position: 'relative',
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
+    paddingHorizontal: 28,
+    paddingTop: 30,
+    paddingBottom: 40,
     justifyContent: 'center',
-    padding: 20,
   },
-  header: {
+  centerContainer: {
+    width: '100%',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  brandContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   logoBadge: {
-    width: 76,
-    height: 76,
+    width: 72,
+    height: 72,
     borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
     overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 191, 50, 0.4)',
   },
-  appTitle: {
-    fontSize: 24,
+  logoImage: {
+    width: 72,
+    height: 72,
+  },
+  brandTitle: {
+    fontSize: 28,
     fontWeight: '800',
-    color: Colors.white,
-    letterSpacing: 0.5,
+    color: THEME.tealDark,
+    letterSpacing: -0.5,
+    textAlign: 'center',
   },
-  appSubtitle: {
+  brandTagline: {
     fontSize: 13,
-    color: Colors.gold.primary,
+    color: THEME.textMuted,
     marginTop: 4,
-    fontWeight: '600',
+    fontWeight: '500',
+    textAlign: 'center',
   },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: Colors.navy.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: Colors.background,
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 6,
-  },
-  tabActive: {
-    backgroundColor: Colors.gold.primary,
-    shadowColor: Colors.gold.dark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  tabTextActive: {
-    color: '#0B1A30',
-    fontWeight: '800',
+  formContainer: {
+    width: '100%',
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.dangerLight,
+    backgroundColor: THEME.dangerLight,
     borderWidth: 1,
-    borderColor: '#fed7aa',
-    borderRadius: 8,
+    borderColor: '#FECACA',
+    borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     gap: 8,
   },
   errorMessage: {
     flex: 1,
-    color: Colors.danger,
+    color: THEME.danger,
     fontSize: 13,
     fontWeight: '500',
   },
-  submitBtn: {
-    marginTop: 8,
+  inputWrapper: {
+    marginBottom: 16,
   },
-  demoHelper: {
-    marginTop: 20,
-    padding: 12,
-    backgroundColor: Colors.secondary[50],
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.secondary[200],
+  inputBox: {
+    backgroundColor: THEME.inputBg,
+    borderWidth: 1.2,
+    borderColor: THEME.inputBorder,
+    borderRadius: 12,
+    height: 54,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
   },
-  demoHelperTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.secondary[600],
-    textTransform: 'uppercase',
-    marginBottom: 4,
+  inputBoxFocused: {
+    borderColor: THEME.inputBorderFocused,
+    shadowColor: THEME.tealPrimary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  demoHelperRow: {
-    fontSize: 12,
-    color: Colors.secondary[700],
-    marginVertical: 1,
+  textInput: {
+    fontSize: 15,
+    color: THEME.textDark,
+    fontWeight: '500',
   },
-  boldText: {
-    fontWeight: '700',
-    color: Colors.secondary[900],
-  },
-  footer: {
-    marginTop: 24,
+  eyeBtn: {
+    position: 'absolute',
+    right: 14,
+    height: 54,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  footerText: {
-    fontSize: 12,
-    color: Colors.neutral[400],
+  actionBtn: {
+    backgroundColor: THEME.tealPrimary,
+    borderRadius: 12,
+    height: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    shadowColor: THEME.tealPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  actionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  actionBtnIcon: {
+    marginLeft: 8,
+  },
+  linksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    paddingHorizontal: 2,
+  },
+  linkText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: THEME.tealPrimary,
+  },
+  bottomIllustrationContainer: {
+    position: 'absolute',
+    bottom: -15,
+    right: -15,
+    zIndex: 1,
+  },
+  cornerIllustration: {
+    width: 145,
+    height: 145,
+    opacity: 0.95,
   },
 });
+
+
