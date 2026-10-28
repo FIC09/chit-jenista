@@ -623,7 +623,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
 
               return (
                 <TouchableOpacity
-                  key={goal.id || idx}
+                  key={`goal-${goal.id || ''}-${idx}`}
                   style={styles.goalCard}
                   onLongPress={() => handleDeleteGoal(goal.id, goal.title)}
                   activeOpacity={0.9}
@@ -835,7 +835,7 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
                 const amountDueForChit = targetRow ? targetRow.revisedDue : item.monthlyInstallment || 5000;
 
                 return (
-                  <View key={idx} style={styles.chitCard}>
+                  <View key={`chit-${item.groupId || ''}-${item.ticketNumber || idx}-${idx}`} style={styles.chitCard}>
                     {/* Header Row */}
                     <View style={styles.chitHeader}>
                       <View style={{ flex: 1 }}>
@@ -1742,14 +1742,14 @@ export const CustomerDashboardScreen: React.FC<{ navigation: any; route?: any }>
 
                   return (
                     <View style={{ gap: 8, marginTop: 4 }}>
-                      {availableChits.map((item) => {
-                        const isSelected = selectedChitForGoal?.groupId === item.groupId;
+                      {availableChits.map((item, idx) => {
+                        const isSelected = selectedChitForGoal?.groupId === item.groupId && selectedChitForGoal?.ticketNumber === item.ticketNumber;
                         const chitVal = Number(item.chitValue) || 100000;
                         const durationM = Number(item.duration) || 20;
 
                         return (
                           <TouchableOpacity
-                            key={item.groupId}
+                            key={`${item.groupId || 'chit'}-${item.ticketNumber || idx}-${idx}`}
                             style={[
                               styles.chitSelectOptionCard,
                               isSelected && styles.chitSelectOptionCardActive,

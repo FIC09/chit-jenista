@@ -1,2 +1,30 @@
 {"level":"info","message":"MongoDB Connected: ac-lb3lkqy-shard-00-00.lttiogk.mongodb.net","timestamp":"2026-10-28T04:54:09.818Z"}
 {"level":"info","message":"Server running in development mode on port 3000","timestamp":"2026-10-28T04:54:09.836Z"}
+{"level":"error","message":"[\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"body\",\n      \"identifier\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"origin\": \"string\",\n    \"code\": \"too_small\",\n    \"minimum\": 6,\n    \"inclusive\": true,\n    \"path\": [\n      \"body\",\n      \"password\"\n    ],\n    \"message\": \"Password must be at least 6 characters\"\n  }\n]","name":"ZodError","timestamp":"2026-10-28T09:06:41.728Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T09:06:46.066Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T09:06:46.069Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T09:26:59.219Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T09:26:59.224Z"}
+{"level":"error","message":"[\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"body\",\n      \"identifier\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"origin\": \"string\",\n    \"code\": \"too_small\",\n    \"minimum\": 6,\n    \"inclusive\": true,\n    \"path\": [\n      \"body\",\n      \"password\"\n    ],\n    \"message\": \"Password must be at least 6 characters\"\n  }\n]","name":"ZodError","timestamp":"2026-10-28T11:17:13.244Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:17:16.903Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:17:16.977Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:18:06.945Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:18:14.530Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:18:25.548Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:18:28.556Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:21:37.366Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:21:53.854Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:21:53.856Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:22:01.023Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:22:05.792Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:24:12.430Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:24:21.426Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:24:28.802Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:24:32.669Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T11:24:42.026Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T12:16:36.417Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T12:16:36.425Z"}
+{"level":"error","message":"[\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"body\",\n      \"identifier\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"origin\": \"string\",\n    \"code\": \"too_small\",\n    \"minimum\": 6,\n    \"inclusive\": true,\n    \"path\": [\n      \"body\",\n      \"password\"\n    ],\n    \"message\": \"Password must be at least 6 characters\"\n  }\n]","name":"ZodError","timestamp":"2026-10-28T12:17:03.044Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T12:17:05.349Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T12:17:06.833Z"}
+{"errorCode":"UNAUTHORIZED","level":"error","statusCode":401,"timestamp":"2026-10-28T12:17:28.441Z"}

@@ -420,7 +420,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => `${item.id || 'notif'}-${index}`}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           refreshControl={

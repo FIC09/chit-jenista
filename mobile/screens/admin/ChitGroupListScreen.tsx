@@ -215,7 +215,7 @@ export const ChitGroupListScreen: React.FC<{ navigation: any }> = ({ navigation 
       ) : (
         <FlatList
           data={filteredGroups}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => `${item.id || 'grp'}-${index}`}
           renderItem={renderGroupCard}
           contentContainerStyle={styles.listContent}
           refreshControl={

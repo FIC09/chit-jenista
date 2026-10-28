@@ -267,7 +267,7 @@ export const CustomerPortfolioScreen: React.FC<{ navigation: any; route?: any }>
             const progress = Math.min(100, Math.round((paidMonths / totalMonths) * 100));
 
             return (
-              <View key={idx} style={styles.investmentCard}>
+              <View key={`port-${item.groupId || ''}-${item.ticketNumber || idx}-${idx}`} style={styles.investmentCard}>
                 <View style={styles.invCardTop}>
                   <View style={styles.brandIconBox}>
                     <Text style={styles.brandIconText}>CHIT</Text>

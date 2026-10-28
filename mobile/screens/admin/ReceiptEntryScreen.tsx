@@ -469,7 +469,7 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
           {/* Members List */}
           <FlatList
             data={filteredMembers}
-            keyExtractor={(item) => String(item.id || item.mongoId || item.name)}
+            keyExtractor={(item, index) => `${item.id || item.mongoId || item.name || 'mem'}-${index}`}
             contentContainerStyle={styles.modalList}
             renderItem={({ item }) => {
               const name = item.name || item.fullName || 'Member';
@@ -567,7 +567,7 @@ export const ReceiptEntryScreen: React.FC<{ route: any; navigation: any }> = ({
           {/* Groups List */}
           <FlatList
             data={filteredGroups}
-            keyExtractor={(item) => String(item.id || item.name)}
+            keyExtractor={(item, index) => `${item.id || item.name || 'grp'}-${index}`}
             contentContainerStyle={styles.modalList}
             renderItem={({ item }) => {
               const isSelected = (chitGroup || '').toLowerCase() === (item.name || item.id || '').toLowerCase();

@@ -179,7 +179,7 @@ export const ReportsScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
       ) : (
         <FlatList
           data={nonPayers}
-          keyExtractor={(item) => item.customerId}
+          keyExtractor={(item, index) => `${item.customerId}-${item.groupName}-${index}`}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           refreshControl={

@@ -498,11 +498,11 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
           </View>
 
           <View style={styles.listWrapper}>
-            {pendingVerifications.slice(0, 3).map((pv: any) => {
+            {pendingVerifications.slice(0, 3).map((pv: any, idx: number) => {
               const isAdv = pv.isAdvance || pv.adminNotes?.includes('Advance');
               return (
                 <TouchableOpacity
-                  key={pv.id}
+                  key={`${pv.id || 'pv'}-${idx}`}
                   style={styles.verificationRowCard}
                   activeOpacity={0.8}
                   onPress={() => navigation.navigate('PaymentVerifications')}
@@ -552,13 +552,13 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
       </View>
 
       <View style={styles.listWrapper}>
-        {recentCustomers.map((cust) => {
+        {recentCustomers.map((cust, idx) => {
           const isPending = Number(cust.pending || 0) > 0;
           const initial = (cust.name || 'M').charAt(0).toUpperCase();
 
           return (
             <TouchableOpacity
-              key={cust.id}
+              key={`${cust.id || 'cust'}-${idx}`}
               style={styles.customerRowCard}
               activeOpacity={0.7}
               onPress={() => navigation.navigate('CustomerDetail', { customer: cust })}
@@ -615,10 +615,10 @@ export const AdminDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
       </View>
 
       <View style={styles.listWrapper}>
-        {recentLedger.map((tx) => {
+        {recentLedger.map((tx, idx) => {
           const isCredit = tx.type === 'CREDIT';
           return (
-            <View key={tx.id} style={styles.ledgerRowCard}>
+            <View key={`${tx.id || 'tx'}-${idx}`} style={styles.ledgerRowCard}>
               <View
                 style={[
                   styles.txIconBox,

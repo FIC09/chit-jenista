@@ -201,7 +201,7 @@ export const PaymentVerificationsScreen: React.FC = () => {
     <View style={styles.container}>
       <FlatList
         data={requests}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => `${item.id || 'pv'}-${index}`}
         renderItem={renderReq}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold.primary} />}
         contentContainerStyle={styles.listContent}

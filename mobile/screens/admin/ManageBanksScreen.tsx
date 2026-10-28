@@ -145,8 +145,8 @@ export const ManageBanksScreen: React.FC = () => {
       )}
 
       <View style={styles.bankList}>
-        {banks.map((bank) => (
-          <View key={bank.id} style={styles.bankCard}>
+        {banks.map((bank, idx) => (
+          <View key={`${bank.id || 'bank'}-${idx}`} style={styles.bankCard}>
             <View style={styles.bankCardHeader}>
               <View style={styles.bankIconCircle}>
                 <Ionicons name="business" size={20} color={Colors.primary[900]} />

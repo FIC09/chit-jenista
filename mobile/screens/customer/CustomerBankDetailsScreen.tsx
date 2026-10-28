@@ -88,7 +88,7 @@ export const CustomerBankDetailsScreen: React.FC<{ navigation: any }> = ({ navig
       </View>
 
       {banks.map((b, idx) => (
-        <View key={b.id || idx} style={styles.bankCard}>
+        <View key={`${b.id || 'bank'}-${idx}`} style={styles.bankCard}>
           <View style={styles.cardHeader}>
             <View style={styles.bankIconCircle}>
               <Ionicons name="business" size={22} color={Colors.gold.dark} />

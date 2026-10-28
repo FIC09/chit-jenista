@@ -223,7 +223,7 @@ export const CustomerListScreen: React.FC<{ route?: any; navigation: any }> = ({
       ) : (
         <FlatList
           data={filteredCustomers}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => `${item.id || item.phone || 'cust'}-${index}`}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           refreshControl={

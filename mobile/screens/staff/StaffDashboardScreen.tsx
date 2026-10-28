@@ -181,7 +181,7 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
       {activeTab === 'DUES' ? (
         <FlatList
           data={customersWithDues}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => `${item.id || item.phone || 'due'}-${index}`}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -254,7 +254,7 @@ export const StaffDashboardScreen: React.FC<{ navigation: any }> = ({ navigation
       ) : (
         <FlatList
           data={ledgerEntries}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => `${item.id || 'rec'}-${index}`}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

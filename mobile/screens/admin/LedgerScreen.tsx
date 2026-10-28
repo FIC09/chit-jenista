@@ -252,7 +252,7 @@ export const LedgerScreen: React.FC = () => {
       {/* List of Payments */}
       <FlatList
         data={filtered}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => `${item.id || 'txn'}-${index}`}
         renderItem={renderTxn}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold.primary} />}
         contentContainerStyle={styles.listContent}
